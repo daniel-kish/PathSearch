@@ -10,6 +10,7 @@
 using namespace ci;
 using namespace ci::app;
 using namespace std::literals;
+using Node = Graph::Node;
 
 class BasicApp : public App {
 public:
@@ -44,7 +45,7 @@ private:
 	std::string msg;
 	Graph g;
 	std::vector<Point> gpts;
-	std::vector<Graph::NodesList::iterator> chosen;
+	std::vector<Graph::Node::Ref> chosen;
 	Color graphEdgesCol;
 	Color graphVerticesCol;
 	Color selectionCol;
@@ -140,7 +141,8 @@ void BasicApp::keyDown(KeyEvent event)
 		if (!selectionMode && chosen.size() == 2) {
 			try {
 				hoveredOn = &g.nodes.front().triangle;
-				g.flipNodes(chosen[0], chosen[1]);
+				Edge e = common_edge(chosen[0]->triangle, chosen[1]->triangle);
+				g.flipNodes(chosen[0], chosen[1], e);
 			}
 			catch (FlipError& fe) {
 				msg = fe.what();

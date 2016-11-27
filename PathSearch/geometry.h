@@ -84,7 +84,7 @@ struct FlipError {
 	FlipError(std::string s);
 	std::string const& what() const;
 };
-std::tuple<Triangle, Triangle> flip(Triangle t1, Triangle t2);
+std::tuple<Triangle, Triangle> flip(Triangle t1, Triangle t2, Edge e);
 
 enum class Side {
 	right, left, coin

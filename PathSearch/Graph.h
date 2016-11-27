@@ -18,18 +18,19 @@ std::ostream& operator<< (std::ostream& os, std::vector<T> const& v)
 	return os;
 }
 
-struct Node {
-	Triangle triangle;
-	std::vector<Node*> refs;
-};
-
 struct Graph
 {
+	struct Node {
+		using Ref = std::list<Node>::iterator;
+		Triangle triangle;
+		std::vector<Ref> refs;
+	};
 	using NodesList = std::list<Node>;
+	using Pair = std::tuple<Graph::Node::Ref, Graph::Node::Ref>;
 	NodesList nodes;
 	void insert(Triangle t);
-	void erase(NodesList::iterator it);
-	void flipNodes(NodesList::iterator it1, NodesList::iterator it2);
+	void erase(Node::Ref it);
+	Pair Graph::flipNodes(Node::Ref it1, Node::Ref it2, Edge common_edge);
 };
 
 std::ostream& operator<< (std::ostream& os, Graph const& g);

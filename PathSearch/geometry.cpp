@@ -80,14 +80,14 @@ std::string const& FlipError::what() const
 	return msg;
 }
 
-std::tuple<Triangle, Triangle> flip(Triangle t1, Triangle t2)
+std::tuple<Triangle, Triangle> flip(Triangle t1, Triangle t2, Edge e)
 {
 	using namespace std;
 
 	sort(t1.begin(), t1.end());
 	sort(t2.begin(), t2.end());
 
-	Edge e = common_edge(t1, t2);
+	//Edge e = common_edge(t1, t2);
 	Simplex<1> v1 = set_difference(t1, e);
 	Simplex<1> v2 = set_difference(t2, e);
 

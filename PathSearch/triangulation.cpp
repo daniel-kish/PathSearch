@@ -39,12 +39,14 @@ Graph triangulatePolygon(std::vector<Point> const& pts)
 
 void addNewPoint(std::vector<Point>& pts, Graph& g, Point const& p)
 {
+	using Node = Graph::Node;
+
 	pts.push_back(p);
 	auto fnd = std::find_if(begin(g.nodes), end(g.nodes), [&pts, p](const Node& n) {
 		return insideTriangle(pts, n.triangle, p);
 	});
 	Triangle t = fnd->triangle;
-	std::vector<Node*> neibs = fnd->refs;
+	std::vector<Node::Ref> neibs = fnd->refs;
 	g.erase(fnd);
 
 	std::sort(t.begin(), t.end());
@@ -65,11 +67,11 @@ void addNewPoint(std::vector<Point>& pts, Graph& g, Point const& p)
 	const auto e = g.nodes.end();
 	for (auto p = b; p != e; ++p) {
 		// pick a neighbor from 'neibs'
-		for (Node* neib : neibs) {
+		for (Node::Ref neib : neibs) {
 			Edge ce = common_edge(p->triangle, neib->triangle);
 			if (valid_edge(ce)) {
 				p->refs.push_back(neib);
-				neib->refs.push_back(&(*p));
+				neib->refs.push_back(p);
 			}
 		}
 		// and among themselves
@@ -77,22 +79,22 @@ void addNewPoint(std::vector<Point>& pts, Graph& g, Point const& p)
 			if (&(*p) == &(*q))  continue;
 			Edge ce = common_edge(q->triangle, p->triangle);
 			if (valid_edge(ce)) {
-				p->refs.push_back(&(*q));
+				p->refs.push_back(q);
 			}
 		}
 	}
 }
 
-bool localDelaunay(std::vector<Point> const& pts, Triangle const& t1, Triangle const& t2)
+bool localDelaunay(std::vector<Point> const& pts, Triangle const& t1, Triangle const& t2, Edge ce)
 {
 	Circle c1 = circumCircle(pts, t1);
 	
-	Edge ce = common_edge(t1, t2);
-	if (!valid_edge(ce)) {
-		std::ostringstream os;
-		os << t1 << ' ' << t2;
-		throw NotNeighbors{os.str()};
-	}
+	//Edge ce = common_edge(t1, t2);
+	//if (!valid_edge(ce)) {
+	//	std::ostringstream os;
+	//	os << t1 << ' ' << t2;
+	//	throw NotNeighbors{os.str()};
+	//}
 		
 	Simplex<1> out2 = set_difference(t2, ce);
 	double d1 = dist(pts[out2[0]], c1.center);

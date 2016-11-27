@@ -14,4 +14,4 @@ Graph triangulatePolygon(std::vector<Point> const& pts);
 
 void addNewPoint(std::vector<Point>& pts, Graph& g, Point const& p);
 
-bool localDelaunay(std::vector<Point> const& pts, Triangle const& t1, Triangle const& t2);
+bool localDelaunay(std::vector<Point> const& pts, Triangle const& t1, Triangle const& t2, Edge ce);
