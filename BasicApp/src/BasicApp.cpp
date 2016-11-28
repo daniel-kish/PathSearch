@@ -6,11 +6,20 @@
 #include "Graph.h"
 #include "triangulation.h"
 #include <random>
+#include <deque>
+#include <set>
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 using namespace ci;
 using namespace ci::app;
 using namespace std::literals;
 using Node = Graph::Node;
+
+double rho(double t)
+{
+	return 200 + sin(4 * t - M_PI/2.0)*50.0;
+}
 
 class BasicApp : public App {
 public:
@@ -21,17 +30,17 @@ public:
 		);
 		font = ci::Font(src, 18.f);
 
-		gpts = std::vector<Point>{{100,0},{100,80},{-100,80},{-100,0}};
-		g = triangulatePolygon(gpts);
-
 		graphEdgesCol = Color("slategray");
 		graphVerticesCol = Color("white");
 		selectionCol = Color("mediumaquamarine");
 		hoveredOn = nullptr;
+		q.push_back(g.nodes.begin());
+		file.open(R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\file.txt)");
 	}
 	void mouseDown(MouseEvent event) override;
 	void mouseMove(MouseEvent event) override;
 	void keyDown(KeyEvent event) override;
+	void mouseWheel(MouseEvent event) override;
 	void draw() override;
 
 private:
@@ -40,6 +49,7 @@ private:
 		return{float(p.x),float(p.y)};
 	}
 	int height, wid;
+	float scaleFac{1.0};
 	ci::Font font;
 	vec2 textPos;
 	std::string msg;
@@ -71,6 +81,36 @@ private:
 	Triangle* hoveredOn;
 	Point circum_center;
 	double circum_radius;
+	std::deque<Node::Ref> q;
+	std::set<Triangle> closed;
+	std::ofstream file;
+	void trian() {
+		q.clear();
+		closed.clear();
+		q.push_back(g.nodes.begin());
+		while (!q.empty())
+		{
+			Node::Ref head = q.front();
+			q.pop_front();
+			auto res = closed.insert(head->triangle);
+			if (!res.second)
+				continue;
+
+			std::vector<Node::Ref> neibs = head->refs;
+			for (Node::Ref neib : neibs)
+			{
+				Triangle t1 = head->triangle, t2 = neib->triangle;
+				Edge e = common_edge(t1, t2);
+				if (!localDelaunay(gpts, t1, t2, e)) {
+					g.flipNodes(head, neib, e);
+					q.push_back(head); q.push_back(neib);
+					break;
+				}
+				if (closed.find(neib->triangle) == closed.end())
+					q.push_back(neib);
+			}
+		}
+	}
 };
 
 void BasicApp::mouseMove(MouseEvent event)
@@ -96,8 +136,46 @@ void BasicApp::mouseMove(MouseEvent event)
 	}
 }
 
+void BasicApp::mouseWheel(MouseEvent event)
+{
+	auto incr = event.getWheelIncrement();
+	scaleFac += incr;
+}
+
 void BasicApp::mouseDown(MouseEvent event)
 {
+	static bool b = true;
+	static double rmax = 0.0;
+	if (b) {
+		for (double t = 0.0; t <= 2.0*M_PI; t += 2.0*M_PI / 100.0)
+		{
+			Point p;
+			double r = rho(t);
+			p.x = r*cos(t);
+			p.y = r*sin(t);
+			gpts.push_back(p);
+		}
+		g = triangulatePolygon(gpts);
+		addNewPoint(gpts, g, {0,0});
+		b = false;
+	}
+	else {
+		static double t = 0.0;
+		double h = 20.0;
+		if (t >= 2.0*M_PI) return;
+		Point orth;
+		orth.x = cos(t);
+		orth.y = sin(t);
+		double r = rho(t);
+		int m = std::floor(r / h);
+		for (int j = 1; j <= m; ++j)
+		{
+			addNewPoint(gpts, g, orth*h*j);
+		}
+		trian();
+		t += 2.0*M_PI / 100.0;
+	}
+	return;
 	if (event.isLeftDown())
 	{
 		if (selectionMode)
@@ -162,6 +240,10 @@ void BasicApp::keyDown(KeyEvent event)
 			msg = "insert a point";
 		}
 	}
+	else if (event.getCode() == 't')
+	{
+		trian();
+	}
 }
 
 void BasicApp::draw()
@@ -172,7 +254,7 @@ void BasicApp::draw()
 	gl::pushModelMatrix();
 
 	gl::translate({wid*0.5f,height*0.5f});
-	gl::scale({1.f,-1.f});
+	gl::scale(vec2{1.f,-1.f}*scaleFac);
 	gl::clear(Color("black"));
 
 	gl::drawCoordinateFrame(30.f);
@@ -188,14 +270,14 @@ void BasicApp::draw()
 	grawGraph();
 	gl::color(graphVerticesCol);
 	for (auto& v : gpts)
-		gl::drawSolidCircle(toVec2(v), 4.f);
+		gl::drawSolidCircle(toVec2(v), 1.5f);
 
 	if (hoveredOn != nullptr)
 		gl::drawStrokedCircle(toVec2(circum_center), circum_radius);
 
 	{
 		gl::pushModelMatrix();
-		gl::scale({1,-1});
+		gl::scale(vec2{1,-1}*scaleFac);
 		gl::drawString(msg, textPos, Color("white"), font);
 		gl::popModelMatrix();
 	}

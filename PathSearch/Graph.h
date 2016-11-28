@@ -30,7 +30,7 @@ struct Graph
 	NodesList nodes;
 	void insert(Triangle t);
 	void erase(Node::Ref it);
-	Pair Graph::flipNodes(Node::Ref it1, Node::Ref it2, Edge common_edge);
+	void flipNodes(Node::Ref it1, Node::Ref it2, Edge common_edge);
 };
 
 std::ostream& operator<< (std::ostream& os, Graph const& g);

@@ -25,7 +25,7 @@ void Graph::erase(Node::Ref erased)
 	nodes.erase(erased);
 }
 
-Graph::Pair Graph::flipNodes(Node::Ref it1, Node::Ref it2, Edge e)
+void Graph::flipNodes(Node::Ref it1, Node::Ref it2, Edge e)
 {
 	/*Edge e = common_edge(it1->triangle, it2->triangle);
 	if (!valid_edge(e)) {
@@ -40,38 +40,32 @@ Graph::Pair Graph::flipNodes(Node::Ref it1, Node::Ref it2, Edge e)
 	eraseVal(neibs, it2);
 	eraseVal(neibs, it1);
 
-	Triangle t1 = it1->triangle;
-	Triangle t2 = it2->triangle;
-	this->erase(it1);
-	this->erase(it2);
+	for (auto neib : it1->refs)
+		eraseVal(neib->refs, it1);
+	for (auto neib : it2->refs)
+		eraseVal(neib->refs, it2);
+	
+	it1->refs.clear();
+	it2->refs.clear();
 
-	std::tie(t1, t2) = flip(t1, t2, e);
-	this->nodes.push_back({t1,{}});
-	Node::Ref n1 = std::prev(nodes.end());
-	this->nodes.push_back({t2,{}});
-	Node::Ref n2 = std::prev(nodes.end());
-
-	// t1
+	std::tie(it1->triangle, it2->triangle) = flip(it1->triangle, it2->triangle, e);
+	
 	for (Node::Ref n : neibs) {
-		Edge ce = common_edge(t1, n->triangle);
-		if (valid_edge(ce))
-		{
-			n1->refs.push_back(n);
-			n->refs.push_back(n1);
+		Edge ce = common_edge(it1->triangle, n->triangle);
+		if (valid_edge(ce)) {
+			it1->refs.push_back(n);
+			n->refs.push_back(it1);
 		}
 	}
-	// t2
 	for (Node::Ref n : neibs) {
-		Edge ce = common_edge(t2, n->triangle);
-		if (valid_edge(ce))
-		{
-			n2->refs.push_back(n);
-			n->refs.push_back(n2);
+		Edge ce = common_edge(it2->triangle, n->triangle);
+		if (valid_edge(ce)) {
+			it2->refs.push_back(n);
+			n->refs.push_back(it2);
 		}
 	}
-	n1->refs.push_back(n2);
-	n2->refs.push_back(n1);
-	return {n1,n2};
+	it1->refs.push_back(it2);
+	it2->refs.push_back(it1);
 }
 
 std::ostream& operator<< (std::ostream& os, Graph const& g)

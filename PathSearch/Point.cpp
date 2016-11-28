@@ -15,6 +15,11 @@ Point operator*(Point const& p, double f)
 	return{p.x*f, p.y*f};
 }
 
+double operator*(Point const& p, Point const& q)
+{
+	return p.x*q.x + p.y*q.y;
+}
+
 std::ostream& operator<< (std::ostream& os, Point const& p)
 {
 	return os << '(' << p.x << ' ' << p.y << ')';

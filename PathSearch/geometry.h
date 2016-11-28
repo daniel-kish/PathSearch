@@ -74,6 +74,12 @@ bool operator==(Simplex<N> const& s1, Simplex<N> const& s2)
 	return s1.pts == s2.pts;
 }
 
+template <unsigned N>
+bool operator<(Simplex<N> const& s1, Simplex<N> const& s2)
+{
+	return s1.pts < s2.pts;
+}
+
 Edge common_edge(Triangle t1, Triangle t2);
 bool valid_edge(Edge const& e);
 Simplex<1> set_difference(Triangle const& t, Edge const& e);
@@ -87,22 +93,32 @@ struct FlipError {
 std::tuple<Triangle, Triangle> flip(Triangle t1, Triangle t2, Edge e);
 
 enum class Side {
-	right, left, coin
+	right, left, coin, collinear
 };
 
 std::ostream& operator<< (std::ostream& os, Side const& s);
 
 Side side(Point const& a, Point const& b, Point const& c);
 
+
 template <class Cont>
-bool insideTriangle(Cont const& pts, Triangle const& t, Point const& p)
+int insideTriangle(Cont const& pts, Triangle const& t, Point const& p)
 {
 	auto s1 = side(pts[t[0]], pts[t[1]], p);
 	auto s2 = side(pts[t[1]], pts[t[2]], p);
 	auto s3 = side(pts[t[2]], pts[t[0]], p);
-	if (s1 == s2 && s1 == s3)
-		return true;
-	return false;
+	if (s1 == s2 && s1 == s3) // in
+		return 0;
+	else if (s1 == Side::coin) {
+		return 1;
+	}
+	else if (s2 == Side::coin) {
+		return 2;
+	}
+	else if (s3 == Side::coin) {
+		return 3;
+	}
+	return -1; // out
 }
 
 Point circumCenter(std::vector<Point> const& v, Triangle const& t);

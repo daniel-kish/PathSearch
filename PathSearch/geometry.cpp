@@ -115,7 +115,13 @@ Side side(Point const& a, Point const& b, Point const& c)
 {
 	double det = (c.x-a.x)*(b.y-a.y) - (b.x-a.x)*(c.y-a.y);
 	if (det == 0.0)
-		return Side::coin;
+	{
+		double s1 = (b - a)*(c - a);
+		double s2 = (a - b)*(c - b);
+		if (s1 > 0.0 && s2 > 0.0)
+			return Side::coin;
+		return Side::collinear;
+	}
 	else if (det < 0.0)
 		return Side::left;
 	else

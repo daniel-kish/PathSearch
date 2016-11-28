@@ -11,6 +11,8 @@ Point operator-(Point const& p, Point const& q);
 
 Point operator*(Point const& p, double f);
 
+double operator*(Point const& p, Point const& q); // scalar product
+
 std::ostream& operator<< (std::ostream& os, Point const& p);
 
 double norm(Point const& p);
