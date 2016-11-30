@@ -150,6 +150,7 @@
     <ClCompile Include="Graph.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Point.cpp" />
+    <ClCompile Include="Search.cpp" />
     <ClCompile Include="triangulation.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -157,6 +158,7 @@
     <ClInclude Include="geometry.h" />
     <ClInclude Include="Graph.h" />
     <ClInclude Include="Point.h" />
+    <ClInclude Include="Search.h" />
     <ClInclude Include="triangulation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

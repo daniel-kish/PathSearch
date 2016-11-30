@@ -36,6 +36,7 @@ public:
 		hoveredOn = nullptr;
 		q.push_back(g.nodes.begin());
 		file.open(R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\file.txt)");
+		cur = g.nodes.begin();
 	}
 	void mouseDown(MouseEvent event) override;
 	void mouseMove(MouseEvent event) override;
@@ -74,7 +75,7 @@ private:
 			gl::end();
 		}
 	}
-	ivec2 mousePos;
+	Point mousePos;
 	bool selectionMode{false};
 	bool insertionMode{false};
 	Point newP;
@@ -111,20 +112,53 @@ private:
 			}
 		}
 	}
+	Node::Ref cur;
+	Position searchState{Position::out};
+	Point searchedPoint;
+	void searchStep()
+	{
+		if (cur == g.nodes.end() && !g.nodes.empty())
+			cur = g.nodes.begin();
+		if (cur == g.nodes.end())
+			return;
+		Position res = insideTriangle(gpts, cur->triangle, searchedPoint);
+		if (res == Position::out) {
+			double dmin = std::numeric_limits<double>::max();
+			Node::Ref trMin = cur;
+			for (Node::Ref n : cur->refs)
+			{
+				Point center = triangleCenter(gpts, n->triangle);
+				double d = dist(center, searchedPoint);
+				if (d < dmin) {
+					dmin = d;
+					trMin = n;
+				}
+			}
+			cur = trMin;
+		}
+		else if (res == Position::in) {
+			searchState = Position::in;
+		}
+		else if (res == Position::edge01 || res == Position::edge12 
+			     || res == Position::edge02) 
+		{
+			searchState = res;
+		}
+	}
 };
 
 void BasicApp::mouseMove(MouseEvent event)
 {
-	mousePos = event.getPos();
-	mousePos -= vec2{wid*0.5f, height*0.5f};
-	mousePos *= vec2{1.f, -1.f};
+	std::ostringstream os;
+	auto imsPos = event.getPos();
+	mousePos.x = double(imsPos.x);
+	mousePos.y = double(imsPos.y);
+	mousePos = mousePos - Point{wid*0.5f, height*0.5f};
+	mousePos.y *= -1.0;
+	mousePos = mousePos * (1.0/scaleFac);
 	
-	Point msPt{double(mousePos.x), double(mousePos.y)};
-	//if (hoveredOn != nullptr && insideTriangle(gpts, hoveredOn->triangle, msPt))
-	//	return;
-	
-	auto pos = std::find_if(g.nodes.begin(), g.nodes.end(), [this,msPt](Node const& n) {
-		return insideTriangle(gpts, n.triangle, msPt);
+	auto pos = std::find_if(g.nodes.begin(), g.nodes.end(), [this](Node const& n) {
+		return insideTriangle(gpts, n.triangle, mousePos) == Position::in;
 	});
 	if (pos != g.nodes.end())
 		hoveredOn = &pos->triangle;
@@ -139,50 +173,21 @@ void BasicApp::mouseMove(MouseEvent event)
 void BasicApp::mouseWheel(MouseEvent event)
 {
 	auto incr = event.getWheelIncrement();
-	scaleFac += incr;
+	scaleFac *= std::pow(1.05, incr);
+	std::ostringstream os;
+	os << scaleFac;
+	msg = os.str();
 }
 
 void BasicApp::mouseDown(MouseEvent event)
 {
-	static bool b = true;
-	static double rmax = 0.0;
-	if (b) {
-		for (double t = 0.0; t <= 2.0*M_PI; t += 2.0*M_PI / 100.0)
-		{
-			Point p;
-			double r = rho(t);
-			p.x = r*cos(t);
-			p.y = r*sin(t);
-			gpts.push_back(p);
-		}
-		g = triangulatePolygon(gpts);
-		addNewPoint(gpts, g, {0,0});
-		b = false;
-	}
-	else {
-		static double t = 0.0;
-		double h = 20.0;
-		if (t >= 2.0*M_PI) return;
-		Point orth;
-		orth.x = cos(t);
-		orth.y = sin(t);
-		double r = rho(t);
-		int m = std::floor(r / h);
-		for (int j = 1; j <= m; ++j)
-		{
-			addNewPoint(gpts, g, orth*h*j);
-		}
-		trian();
-		t += 2.0*M_PI / 100.0;
-	}
-	return;
 	if (event.isLeftDown())
 	{
 		if (selectionMode)
 		{
 			auto p = g.nodes.begin();
 			for (; p != g.nodes.end(); ++p) {
-				if (insideTriangle(gpts, p->triangle, Point{double(mousePos.x), double(mousePos.y)})) {
+				if (insideTriangle(gpts, p->triangle, Point{double(mousePos.x), double(mousePos.y)}) == Position::in) {
 					break;
 				}
 			}
@@ -198,16 +203,20 @@ void BasicApp::mouseDown(MouseEvent event)
 		else if (insertionMode) {
 			gpts.push_back({double(mousePos.x),double(mousePos.y)});
 			g = triangulatePolygon(gpts);
+			cur = g.nodes.begin();
 		}
 		else if (!selectionMode && !insertionMode){
 			Point p{double(mousePos.x),double(mousePos.y)};
 			addNewPoint(gpts, g, p);
+			//searchedPoint = mousePos;
 		}
 	}
 }
 
 void BasicApp::keyDown(KeyEvent event)
 {
+	static double wid = 200.0;
+	static double step = 25.0;
 	if (event.getCode() == 's') {
 		if (chosen.empty()) {
 			selectionMode = true;
@@ -218,7 +227,6 @@ void BasicApp::keyDown(KeyEvent event)
 	{
 		if (!selectionMode && chosen.size() == 2) {
 			try {
-				hoveredOn = &g.nodes.front().triangle;
 				Edge e = common_edge(chosen[0]->triangle, chosen[1]->triangle);
 				g.flipNodes(chosen[0], chosen[1], e);
 			}
@@ -244,6 +252,31 @@ void BasicApp::keyDown(KeyEvent event)
 	{
 		trian();
 	}
+	else if (event.getCode() == 'h') {
+		for (double x = 0.0; x < wid; x += step)
+			gpts.push_back(Point{x,0.0});
+		for (double y = 0.0; y < wid; y += step)
+			gpts.push_back(Point{wid,y});
+		for (double x = wid; x > 0.0; x -= step)
+			gpts.push_back(Point{x,wid});
+		for (double y = wid; y > 0.0; y -= step)
+			gpts.push_back(Point{0.0,y});
+		g = triangulatePolygon(gpts);
+		cur = g.nodes.begin();
+	}
+	else if (event.getCode() == 'p') {
+		for (double x = step; x < wid; x += step)
+		{
+			for (double y = step; y < wid; y += step)
+			{
+				addNewPoint(gpts, g, Point{x,y});
+			}
+			trian();
+		}
+	}
+	else if (event.getCode() == ' ') {
+		searchStep();
+	}
 }
 
 void BasicApp::draw()
@@ -257,6 +290,8 @@ void BasicApp::draw()
 	gl::scale(vec2{1.f,-1.f}*scaleFac);
 	gl::clear(Color("black"));
 
+	gl::color(Color("white"));
+	gl::drawSolidCircle(toVec2(mousePos), 3.f / scaleFac);
 	gl::drawCoordinateFrame(30.f);
 	vec2 tri[3];
 	for (auto n : chosen)
@@ -270,14 +305,14 @@ void BasicApp::draw()
 	grawGraph();
 	gl::color(graphVerticesCol);
 	for (auto& v : gpts)
-		gl::drawSolidCircle(toVec2(v), 1.5f);
+		gl::drawSolidCircle(toVec2(v), 3.0f);
 
 	if (hoveredOn != nullptr)
 		gl::drawStrokedCircle(toVec2(circum_center), circum_radius);
 
 	{
 		gl::pushModelMatrix();
-		gl::scale(vec2{1,-1}*scaleFac);
+		gl::scale(vec2{1,-1}/scaleFac);
 		gl::drawString(msg, textPos, Color("white"), font);
 		gl::popModelMatrix();
 	}

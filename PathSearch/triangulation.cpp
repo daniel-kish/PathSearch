@@ -26,7 +26,7 @@ Graph triangulatePolygon(std::vector<Point> const& pts)
 		Triangle t{*p,*(p + 1),*(p + 2)};
 		Side s = side(pts[t[0]], pts[t[2]], pts[t[1]]);
 		if (s != Side::right) continue;
-		auto inside_t = [t, &pts](Point p) {return insideTriangle(pts, t, p) == 0; };
+		auto inside_t = [t, &pts](Point p) {return insideTriangle(pts, t, p) == Position::in; };
 		bool clean = std::none_of(begin(pts), end(pts), inside_t);
 		if (!clean) continue;
 		std::sort(t.begin(), t.end());
@@ -172,22 +172,22 @@ void addNewPoint(std::vector<Point>& pts, Graph& g, Point const& p)
 	pts.push_back(p);
 	for (auto fnd = g.nodes.begin(); fnd != g.nodes.end(); ++fnd)
 	{
-		int res = insideTriangle(pts, fnd->triangle, p);
-		if (res == -1)
+		Position res = insideTriangle(pts, fnd->triangle, p);
+		if (res == Position::out)
 			continue;
-		else if (res == 0) {
+		else if (res == Position::in) {
 			addNewInsidePoint(pts, g, p, fnd);
 			break;
 		}
-		else if (res == 1) {
+		else if (res == Position::edge01) {
 			addNewEdgePoint(pts, g, p, fnd, Edge{fnd->triangle[0],fnd->triangle[1]});
 			break;
 		}
-		else if (res == 2) {
+		else if (res == Position::edge12) {
 			addNewEdgePoint(pts, g, p, fnd, Edge{fnd->triangle[1],fnd->triangle[2]});
 			break;
 		}
-		else if (res == 3) {
+		else if (res == Position::edge02) {
 			addNewEdgePoint(pts, g, p, fnd, Edge{fnd->triangle[0],fnd->triangle[2]});
 			break;
 		}

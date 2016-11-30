@@ -111,6 +111,18 @@ std::ostream& operator<< (std::ostream& os, Side const& s)
 	return os;
 }
 
+std::ostream& operator<< (std::ostream& os, Position const& p)
+{
+	switch (p) {
+	case Position::out: os << "Position::out"; break;
+	case Position::edge01: os << "Position::edge01"; break;
+	case Position::edge12: os << "Position::edge12"; break;
+	case Position::edge02: os << "Position::edge02"; break;
+	case Position::in: os << "Position::in"; break;
+	}
+	return os;
+}
+
 Side side(Point const& a, Point const& b, Point const& c)
 {
 	double det = (c.x-a.x)*(b.y-a.y) - (b.x-a.x)*(c.y-a.y);
@@ -156,4 +168,14 @@ double circumRadius(std::vector<Point> const& v, Triangle const& t)
 Circle circumCircle(std::vector<Point> const& v, Triangle const& t)
 {
 	return Circle{circumCenter(v,t), circumRadius(v,t)};
+}
+
+Point triangleCenter(std::vector<Point> const& v, Triangle const& t)
+{
+	Point a = v[t[0]];
+	Point b = v[t[1]];
+	Point c = v[t[2]];
+
+	Point center = (a + b + c) * (1.0/3.0);
+	return center;
 }

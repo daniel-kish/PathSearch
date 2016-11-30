@@ -100,27 +100,33 @@ std::ostream& operator<< (std::ostream& os, Side const& s);
 
 Side side(Point const& a, Point const& b, Point const& c);
 
+enum class Position {
+	out, edge01, edge12, edge02, in
+};
+std::ostream& operator<< (std::ostream& os, Position const& p);
 
 template <class Cont>
-int insideTriangle(Cont const& pts, Triangle const& t, Point const& p)
+Position insideTriangle(Cont const& pts, Triangle const& t, Point const& p)
 {
 	auto s1 = side(pts[t[0]], pts[t[1]], p);
 	auto s2 = side(pts[t[1]], pts[t[2]], p);
 	auto s3 = side(pts[t[2]], pts[t[0]], p);
 	if (s1 == s2 && s1 == s3) // in
-		return 0;
+		return Position::in;
 	else if (s1 == Side::coin) {
-		return 1;
+		return Position::edge01;
 	}
 	else if (s2 == Side::coin) {
-		return 2;
+		return Position::edge12;
 	}
 	else if (s3 == Side::coin) {
-		return 3;
+		return Position::edge02;
 	}
-	return -1; // out
+	return Position::out; // out
 }
 
 Point circumCenter(std::vector<Point> const& v, Triangle const& t);
 double circumRadius(std::vector<Point> const& v, Triangle const& t);
 Circle circumCircle(std::vector<Point> const& v, Triangle const& t);
+
+Point triangleCenter(std::vector<Point> const& v, Triangle const& t);
