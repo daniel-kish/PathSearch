@@ -28,11 +28,22 @@ public:
 	{
 		c.clear();
 	}
+	container_type::iterator begin()
+	{
+		return c.begin();
+	}
+	container_type::iterator end()
+	{
+		return c.end();
+	}
+	void make_heap()
+	{
+		std::make_heap(c.begin(), c.end(),comp);
+	}
 };
 
-class GreedySearch
+struct AStarSearch
 {
-public:
 	std::vector<Point> const& pts;
 	Step curStep;
 	Position pos;
@@ -41,9 +52,12 @@ public:
 	State state;
 	Opened opened;
 	std::set<Triangle> closed;
-
-	GreedySearch(std::vector<Point> const& v, Graph& ref);
 	void step();
 	void setPoint(Point const& searchedPoint);
 	void setStart(Graph::Node::Ref newStart);
+public:
+	AStarSearch(std::vector<Point> const& v, Graph& ref);
+	bool localize(Point const& p);
+	bool localizeFrom(Point const& p, Graph::Node::Ref r);
+	std::tuple<Graph::Node::Ref, Position> results() const;
 };

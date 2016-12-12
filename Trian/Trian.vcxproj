@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{569EEFD8-52E8-492F-B50F-85D8B02E90C7}</ProjectGuid>
+    <ProjectGuid>{971F343D-CC29-47DD-B8E9-037DFB6DA97F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>PathSearch</RootNamespace>
+    <RootNamespace>Trian</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -146,24 +146,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="geometry.cpp" />
-    <ClCompile Include="Graph.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="PathFinding.cpp" />
-    <ClCompile Include="Point.cpp" />
-    <ClCompile Include="Search.cpp" />
-    <ClCompile Include="Tree.cpp" />
-    <ClCompile Include="triangulation.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="circ_iter.h" />
-    <ClInclude Include="geometry.h" />
-    <ClInclude Include="Graph.h" />
-    <ClInclude Include="PathFinding.h" />
-    <ClInclude Include="Point.h" />
-    <ClInclude Include="Search.h" />
-    <ClInclude Include="Tree.h" />
-    <ClInclude Include="triangulation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

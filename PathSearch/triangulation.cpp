@@ -2,6 +2,8 @@
 #include "circ_iter.h"
 #include <sstream>
 #include <numeric>
+#include <deque>
+#include <set>
 
 NotNeighbors::NotNeighbors(std::string s) : msg(std::move(s))
 {}
@@ -197,13 +199,6 @@ void addNewPoint(std::vector<Point>& pts, Graph& g, Point const& p)
 bool localDelaunay(std::vector<Point> const& pts, Triangle const& t1, Triangle const& t2, Edge ce)
 {
 	Circle c1 = circumCircle(pts, t1);
-	
-	//Edge ce = common_edge(t1, t2);
-	//if (!valid_edge(ce)) {
-	//	std::ostringstream os;
-	//	os << t1 << ' ' << t2;
-	//	throw NotNeighbors{os.str()};
-	//}
 		
 	Simplex<1> out2 = set_difference(t2, ce);
 	double d1 = dist(pts[out2[0]], c1.center);
@@ -211,4 +206,126 @@ bool localDelaunay(std::vector<Point> const& pts, Triangle const& t1, Triangle c
 		return false;
 
 	return true;
+}
+
+std::vector<Graph::Node::Ref>
+getNextBest(std::vector<Point> const& pts, Graph::Node::Ref tr, Point const& p)
+{
+	TriPos pos; Point clos;
+	Point const& a = pts[tr->triangle[0]];
+	Point const& b = pts[tr->triangle[1]];
+	Point const& c = pts[tr->triangle[2]];
+	std::tie(clos, pos) = ClosestPointOnTriangle(p, a, b, c);
+	std::vector<Graph::Node::Ref> next;
+	if (pos == TriPos::inside) {
+		//std::cout << "found " << tr->triangle << '\n';
+		return{tr};
+	}
+	else
+	{
+		std::vector<Edge> guiltyEdges;
+		switch (pos)
+		{
+		case TriPos::edge01:
+			guiltyEdges.push_back(Edge{tr->triangle[0],tr->triangle[1]});
+			break;
+		case TriPos::edge12:
+			guiltyEdges.push_back(Edge{tr->triangle[1],tr->triangle[2]});
+			break;
+		case TriPos::edge20:
+			guiltyEdges.push_back(Edge{tr->triangle[0],tr->triangle[2]});
+			break;
+		case TriPos::V0:
+			guiltyEdges.push_back(Edge{tr->triangle[0],tr->triangle[1]});
+			guiltyEdges.push_back(Edge{tr->triangle[0],tr->triangle[2]});
+			break;
+		case TriPos::V1:
+			guiltyEdges.push_back(Edge{tr->triangle[0],tr->triangle[1]});
+			guiltyEdges.push_back(Edge{tr->triangle[1],tr->triangle[2]});
+			break;
+		case TriPos::V2:
+			guiltyEdges.push_back(Edge{tr->triangle[0],tr->triangle[2]});
+			guiltyEdges.push_back(Edge{tr->triangle[1],tr->triangle[2]});
+			break;
+		}
+		for (auto neib : tr->refs)
+		{
+			Edge ce = common_edge(tr->triangle, neib->triangle);
+			bool yeah = std::any_of(begin(guiltyEdges), end(guiltyEdges), [ce](Edge const& e) {
+				return e == ce;
+			});
+			if (yeah)
+				next.push_back(neib);
+		}
+		return next;
+	}
+}
+
+
+void toDelaunay(std::vector<Point> const& pts, Graph& g)
+{
+	using Node = Graph::Node;
+	std::deque<Graph::Node::Ref> q;
+	std::set<Triangle> closed;
+	q.push_back(g.nodes.begin());
+
+	while (!q.empty())
+	{
+		Node::Ref head = q.front();
+		q.pop_front();
+		auto res = closed.insert(head->triangle);
+		if (!res.second)
+			continue;
+
+		std::vector<Node::Ref> const& neibs = head->refs;
+		for (Node::Ref neib : neibs)
+		{
+			const Triangle &t1 = head->triangle, &t2 = neib->triangle;
+			Edge e = common_edge(t1, t2);
+			if (!localDelaunay(pts, t1, t2, e)) {
+				g.flipNodes(head, neib, e);
+				q.push_back(head); q.push_back(neib);
+				break;
+			}
+			//if (closed.find(neib->triangle) == closed.end())
+				q.push_back(neib);
+		}
+	}
+}
+
+std::vector<Point> rectHull(Rect r, int wpts, int hpts)
+{
+	double wid = std::abs(r.dir.x);
+	double height = std::abs(r.dir.y);
+	double xStep = wid / wpts;
+	double yStep = height / hpts;
+
+	std::vector<Point> pts;
+	for (double x = 0.0; x < wid; x += xStep)
+		pts.push_back(Point{x,0.0});
+	for (double y = 0.0; y < height; y += yStep)
+		pts.push_back(Point{wid,y});
+	for (double x = wid; x > 0.0; x -= xStep)
+		pts.push_back(Point{x,height});
+	for (double y = height; y > 0.0; y -= yStep)
+		pts.push_back(Point{0.0,y});
+
+	if (r.origin != Point{0.0,0.0})
+		for (Point& p : pts)
+			p = p + r.origin;
+	return pts;
+}
+
+std::vector<Point> rectInsides(Rect r, int x_pts, int y_pts)
+{
+	std::vector<Point> pts;
+	double xb = r.origin.x, xe = r.origin.x + r.dir.x;
+	double yb = r.origin.y, ye = r.origin.y + r.dir.y;
+	double x_step = (xe - xb) / x_pts;
+	double y_step = (ye - yb) / y_pts;
+
+	for (double x = xb + x_step; x < xe; x += x_step)
+		for (double y = yb + y_step; y < ye; y += y_step)
+			pts.push_back({x,y});
+	return pts;
 }

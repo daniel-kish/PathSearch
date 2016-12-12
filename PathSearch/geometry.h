@@ -6,6 +6,9 @@
 #include <exception>
 #include <vector>
 
+extern double doubleEps;
+bool zero(double val);
+
 struct Line {
 	Point a, b;
 	Point operator()(double t) const;
@@ -14,6 +17,16 @@ struct Line {
 struct Circle {
 	Point center;
 	double rad;
+};
+
+struct Rect {
+	Point dir;
+	Point origin;
+	Rect (Point v, Point or = Point{})
+		: dir(v), origin(or)
+	{	}
+	Rect() : dir{}, origin{}
+	{}
 };
 
 struct LinesParallel
@@ -91,6 +104,25 @@ struct FlipError {
 	std::string const& what() const;
 };
 std::tuple<Triangle, Triangle> flip(Triangle t1, Triangle t2, Edge e);
+
+enum PointEdgePos { closestToV0, closestToV1, closestToEdge };
+enum class TriPos {
+	V0,
+	V1,
+	V2,
+	edge01,
+	edge12,
+	edge20,
+	inside
+};
+std::ostream& operator<< (std::ostream& os, TriPos const& p);
+
+PointEdgePos pointAndEdge(Point const& a, Point const& b, Point const& p);
+
+//TriPos pointAndTriangle(Point const& p, Point const& a, Point const& b, Point const& c);
+
+Point projectOnEdge(Point const& a, Point const& b, Point const& p);
+std::tuple<Point,TriPos> ClosestPointOnTriangle(Point const& p, Point const& a, Point const& b, Point const& c);
 
 enum class Side {
 	right, left, coin, collinear

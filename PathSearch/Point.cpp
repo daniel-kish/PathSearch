@@ -1,5 +1,16 @@
 #include "Point.h"
 
+bool operator==(Point const& p, Point const& q)
+{
+	return p.x == q.x && p.y == q.y; // TODO approx
+}
+
+bool operator!=(Point const& p, Point const& q)
+{
+	return !(p == q);
+}
+
+
 Point operator+(Point const& p, Point const& q)
 {
 	return{p.x + q.x, p.y + q.y};
@@ -18,6 +29,11 @@ Point operator*(Point const& p, double f)
 double operator*(Point const& p, Point const& q)
 {
 	return p.x*q.x + p.y*q.y;
+}
+
+double crossProdZ(Point const & a, Point const & b)
+{
+	return a.x*b.y - b.x*a.y;
 }
 
 std::ostream& operator<< (std::ostream& os, Point const& p)

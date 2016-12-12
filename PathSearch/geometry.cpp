@@ -7,6 +7,10 @@
 using Triangle = Simplex<3>;
 using Edge = Simplex<2>;
 
+double doubleEps = 1.0e-2;
+
+bool zero(double val) { return abs(val) < doubleEps; }
+
 LinesParallel::LinesParallel(std::string s) : msg(std::move(s))
 {}
 std::string const& LinesParallel::what() const {
@@ -99,6 +103,156 @@ std::tuple<Triangle, Triangle> flip(Triangle t1, Triangle t2, Edge e)
 	t2 = set_union(ne, Simplex<1>{e[1]});
 
 	return {t1, t2};
+}
+
+std::ostream & operator<<(std::ostream & os, TriPos const & p)
+{
+	switch (p)
+	{
+	case TriPos::edge01: os << "edge01"; break;
+	case TriPos::edge12: os << "edge12"; break;
+	case TriPos::edge20: os << "edge20"; break;
+	case TriPos::inside: os << "inside"; break;
+	case TriPos::V0: os << "V0"; break;
+	case TriPos::V1: os << "V1"; break;
+	case TriPos::V2: os << "V2"; break;
+	}
+	return os;
+}
+
+PointEdgePos pointAndEdge(Point const& a, Point const& b, Point const& p)
+{
+	Point ab = b - a;
+	Point ap = p - a;
+	double s1 = ab*ap;
+	if (s1 <= 0.0)
+		return closestToV0;
+	else {
+		double s2 = (a - b)*(p - b);
+		if (s2 <= 0.0)
+			return closestToV1;
+		else
+			return closestToEdge;
+	}
+}
+
+//TriPos pointAndTriangle(Point const& p, Point const& a, Point const& b, Point const& c)
+//{
+//	auto zero = [](double v) { return std::abs(v) < doubleEps; };
+//	Point ap = p - a;
+//	Point ab = b - a;
+//	Point ac = c - a;
+//	double detA = (ab*ab)*(ac*ac) - (ab*ac)*(ac*ab);
+//	double det1 = (ap*ab)*(ac*ac) - (ap*ac)*(ac*ab);
+//	double det2 = (ab*ab)*(ap*ac) - (ab*ac)*(ap*ab);
+//	double u = det1/detA;
+//	double v = det2/detA;
+//	
+//	if (u < 0.0)
+//	{
+//		if (v < 0.0)
+//			return TriPos::closestToV0;
+//		else if (zero(v))
+//			TriPos::closestToEdge20;
+//		else // D
+//		{
+//			if (v <= 1.0)
+//				return TriPos::closestToEdge20;
+//			else
+//				return TriPos::closestToV2;
+//		}
+//	}
+//	else if (zero(u))
+//	{
+//		if (v < 0.0)
+//			return TriPos::closestToV0;
+//		else if (zero(v))
+//			TriPos::onV0;
+//		else // E
+//		{
+//			if (v > 1.0) return TriPos::onEdge20;
+//			else if (v == 1.0) return TriPos::onV2;
+//			else return TriPos::closestToV2;
+//		}
+//	}
+//	else // u > 0.0
+//	{
+//		if (v < 0.0)
+//		{
+//			if (u <= 1.0) return TriPos::closestToEdge01;
+//			else return TriPos::closestToV1;
+//		}
+//		else if (zero(v))
+//		{
+//			if (u < 1.0) return TriPos::onEdge20;
+//			else if (u == 1.0) return TriPos::onV1;
+//			else return TriPos::closestToV1;
+//		}
+//		else
+//		{
+//			if (u + v < 1.0) return TriPos::inside;
+//			else if (u + v == 1.0) return TriPos::onEdge12;
+//			else {
+//				Point bp = p - b, bc = c - b;
+//				double w = (bp*bc) / (bc*bc);
+//				if (w < 0.0) return TriPos::closestToV1;
+//				else if (w < 1.0) return TriPos::closestToEdge12;
+//				else if (w > 1.0) return TriPos::closestToV2;
+//			}
+//		}
+//	}
+//}
+
+
+std::tuple<Point, TriPos> ClosestPointOnTriangle(Point const& p, Point const& a, Point const& b, Point const& c)
+{
+	Point ab = b - a;
+	Point ac = c - a;
+	Point ap = p - a;
+	float d1 = ab * ap;
+	float d2 = ac * ap;
+	if (d1 <= 0.0f && d2 <= 0.0f) 
+		return {a,TriPos::V0}; // onV0 || closestToV0
+	Point bp = p - b;
+	float d3 = ab * bp;
+	float d4 = ac * bp;
+	if (d3 >= 0.0f && d4 <= d3) 
+		return {b,TriPos::V1}; // onV1 || closestToV1
+	float vc = d1*d4 - d3*d2;
+	if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
+		float v = d1 / (d1 - d3);
+		return {a + ab * v, TriPos::edge01}; // onEdge01 || closestToEdge01
+	}
+	
+	Point cp = p - c;
+	float d5 = ab * cp;
+	float d6 = ac * cp;
+	if (d6 >= 0.0f && d5 <= d6) 
+		return {c,TriPos::V2}; // onV2 || closestToV2
+		
+	float vb = d5*d2 - d1*d6;
+	if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
+		float w = d2 / (d2 - d6);
+		return {a + ac*w,TriPos::edge20}; // onEdge20 || closestToEdge20
+	}
+	
+	float va = d3*d6 - d5*d4;
+	if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
+		float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+		return {b + (c - b)*w, TriPos::edge12}; // onEdge12 || closestToEdge12
+	}
+	float denom = 1.0f / (va + vb + vc);
+	float v = vb * denom;
+	float w = vc * denom;
+	return {a + ab * v + ac * w, TriPos::inside}; // inside
+}
+
+Point projectOnEdge(Point const& a, Point const& b, Point const& p)
+{
+	Point ap = p - a;
+	Point ab = b - a;
+	double eta = (ap*ab) / (ab*ab);
+	return a*(1 - eta) + b*eta;
 }
 
 std::ostream& operator<< (std::ostream& os, Side const& s)
