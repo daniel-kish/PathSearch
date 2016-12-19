@@ -3,6 +3,7 @@
 #include <sstream>
 #include "circ_iter.h"
 #include <numeric>
+#include <random>
 
 using Triangle = Simplex<3>;
 using Edge = Simplex<2>;
@@ -40,7 +41,7 @@ std::tuple<double, double> intersection(Point const& origin, Point const& dir, L
 
 	double t = det1 / det;
 	double u = det2 / det;
-	return{t,u};
+	return {t,u};
 }
 
 Edge common_edge(Triangle t1, Triangle t2)
@@ -56,6 +57,23 @@ Edge common_edge(Triangle t1, Triangle t2)
 	Edge e{-1,-1};
 	std::set_intersection(t1.cbegin(), t1.cend(), t2.cbegin(), t2.cend(), e.begin());
 	return e;
+}
+
+int have_common_vertices(Triangle t1, Triangle t2)
+{
+	std::sort(t1.begin(), t1.end());
+	std::sort(t2.begin(), t2.end());
+
+	std::vector<int> verts;
+	std::set_intersection(t1.begin(), t1.end(), t2.begin(), t2.end(), std::back_inserter(verts));
+	return verts.size();
+}
+
+bool have_common_vertices(Edge e1, Edge e2)
+{
+	if (e1[0] == e2[0] || e1[0] == e2[1] || e1[1] == e2[0] || e1[1] == e2[1])
+		return true;
+	return false;
 }
 
 bool valid_edge(Edge const& e)
@@ -332,4 +350,57 @@ Point triangleCenter(std::vector<Point> const& v, Triangle const& t)
 
 	Point center = (a + b + c) * (1.0/3.0);
 	return center;
+}
+
+
+PolyOrientation orientation(std::vector<Point>& poly)
+{
+	auto x = [](Point const& p) {return p.x; };
+	auto y = [](Point const& p) {return p.y; };
+
+	auto p = std::min_element(poly.begin(), poly.end());
+
+	Point a = (p == poly.begin()) ? poly.back() : *(p - 1);
+	Point b = *p;
+	Point c = (p == poly.end() - 1) ? poly.front() : *(p + 1);
+
+	double det = (x(b) - x(a))*(y(c) - y(a)) - (x(c) - x(a))*(y(b) - y(a));
+
+	if (det < 0.0) return PolyOrientation::CW;
+	else return PolyOrientation::CCW;
+}
+
+std::vector<Point> polygonPts(std::vector<Point> const& pts, std::vector<int> poly)
+{
+	std::vector<Point> polyPts(poly.size());
+	std::transform(poly.begin(), poly.end(), polyPts.begin(), [pts](int i) {
+		return pts[i];
+	});
+
+	PolyOrientation or = orientation(polyPts);
+	if (or == PolyOrientation::CW)
+		std::reverse(polyPts.begin(), polyPts.end());
+	return polyPts;
+}
+
+bool insidePoly(std::vector<Point> const& poly, Point const& p)
+{
+	std::mt19937 mt{};
+	std::uniform_real_distribution<double> ud(0.0, 1.0);
+	Point dir{ud(mt),ud(mt)};
+	int intersections = 0;
+	for (int i = 0; i < poly.size()-1; ++i)
+	{
+		Line edge{poly[i],poly[i + 1]};
+		double t, u;
+		std::tie(t,u) = intersection(p, dir, edge);
+		if (t >= 0.0 && t <= 1.0 && u >= 0.0)
+			intersections++;
+	}
+	Line edge{poly.back(),poly.front()};
+	double t, u;
+	std::tie(t, u) = intersection(p, dir, edge);
+	if (t >= 0.0 && t <= 1.0 && u >= 0.0)
+		intersections++;
+	return intersections % 2;
 }

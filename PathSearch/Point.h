@@ -9,6 +9,8 @@ bool operator==(Point const& p, Point const& q);
 
 bool operator!=(Point const& p, Point const& q);
 
+bool operator<(Point const& p, Point const& q);
+
 Point operator+(Point const& p, Point const& q);
 
 Point operator-(Point const& p, Point const& q);

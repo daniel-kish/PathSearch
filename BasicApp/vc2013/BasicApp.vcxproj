@@ -274,7 +274,7 @@ xcopy /y "..\..\..\lib\msw\x86\d3dcompiler_46.dll" "$(OutDir)"</Command>
   <ItemGroup>
     <ClCompile Include="..\..\PathSearch\geometry.cpp" />
     <ClCompile Include="..\..\PathSearch\Graph.cpp" />
-    <ClCompile Include="..\..\PathSearch\PathFinding.cpp" />
+    <ClCompile Include="..\..\PathSearch\Obstacles.cpp" />
     <ClCompile Include="..\..\PathSearch\Point.cpp" />
     <ClCompile Include="..\..\PathSearch\Tree.cpp" />
     <ClCompile Include="..\..\PathSearch\triangulation.cpp" />

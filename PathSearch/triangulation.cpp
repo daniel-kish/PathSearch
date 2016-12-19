@@ -4,6 +4,7 @@
 #include <numeric>
 #include <deque>
 #include <set>
+#include <random>
 
 NotNeighbors::NotNeighbors(std::string s) : msg(std::move(s))
 {}
@@ -293,14 +294,14 @@ void toDelaunay(std::vector<Point> const& pts, Graph& g)
 	}
 }
 
-std::vector<Point> rectHull(Rect r, int wpts, int hpts)
+std::vector<Point> rectHull(Rect r, int x_pts, int y_pts)
 {
 	double wid = std::abs(r.dir.x);
 	double height = std::abs(r.dir.y);
-	double xStep = wid / wpts;
-	double yStep = height / hpts;
+	double xStep = wid / x_pts;
+	double yStep = height / y_pts;
 
-	std::vector<Point> pts;
+	std::vector<Point> pts; pts.reserve(2 * x_pts + 2 * x_pts);
 	for (double x = 0.0; x < wid; x += xStep)
 		pts.push_back(Point{x,0.0});
 	for (double y = 0.0; y < height; y += yStep)
@@ -309,10 +310,13 @@ std::vector<Point> rectHull(Rect r, int wpts, int hpts)
 		pts.push_back(Point{x,height});
 	for (double y = height; y > 0.0; y -= yStep)
 		pts.push_back(Point{0.0,y});
+	
+	pts.shrink_to_fit();
 
 	if (r.origin != Point{0.0,0.0})
 		for (Point& p : pts)
 			p = p + r.origin;
+
 	return pts;
 }
 
@@ -327,5 +331,19 @@ std::vector<Point> rectInsides(Rect r, int x_pts, int y_pts)
 	for (double x = xb + x_step; x < xe; x += x_step)
 		for (double y = yb + y_step; y < ye; y += y_step)
 			pts.push_back({x,y});
+	return pts;
+}
+
+std::vector<Point> rectInsidesRand(Rect r, int n_pts)
+{
+	std::vector<Point> pts; pts.reserve(n_pts);
+	double xb = r.origin.x, xe = r.origin.x + r.dir.x;
+	double yb = r.origin.y, ye = r.origin.y + r.dir.y;
+	std::mt19937 mt{};
+	std::uniform_real_distribution<double> xd(xb, xe);
+	std::uniform_real_distribution<double> yd(yb, ye);
+
+	while (n_pts--)
+		pts.push_back({xd(mt),yd(mt)});
 	return pts;
 }

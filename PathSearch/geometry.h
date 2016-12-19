@@ -94,6 +94,8 @@ bool operator<(Simplex<N> const& s1, Simplex<N> const& s2)
 }
 
 Edge common_edge(Triangle t1, Triangle t2);
+int have_common_vertices(Triangle t1, Triangle t2);
+bool have_common_vertices(Edge e1, Edge e2);
 bool valid_edge(Edge const& e);
 Simplex<1> set_difference(Triangle const& t, Edge const& e);
 Triangle set_union(Edge& e, Simplex<1> s);
@@ -162,3 +164,13 @@ double circumRadius(std::vector<Point> const& v, Triangle const& t);
 Circle circumCircle(std::vector<Point> const& v, Triangle const& t);
 
 Point triangleCenter(std::vector<Point> const& v, Triangle const& t);
+
+enum PolyOrientation {
+	CCW, CW
+};
+using Poly = std::vector<Point>;
+
+PolyOrientation orientation(std::vector<Point>& poly);
+std::vector<Point> polygonPts(std::vector<Point> const& pts, std::vector<int> poly);
+
+bool insidePoly(std::vector<Point> const& poly, Point const& p);

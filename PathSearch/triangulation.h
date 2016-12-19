@@ -21,5 +21,6 @@ getNextBest(std::vector<Point> const& pts, Graph::Node::Ref tr, Point const& p);
 
 void toDelaunay(std::vector<Point> const& pts, Graph& g);
 
-std::vector<Point> rectHull(Rect r, int wpts, int hpts);
+std::vector<Point> rectHull(Rect r, int x_pts, int y_pts);
 std::vector<Point> rectInsides(Rect r, int x_pts, int y_pts);
+std::vector<Point> rectInsidesRand(Rect r, int n_pts);

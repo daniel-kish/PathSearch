@@ -149,9 +149,10 @@
     <ClCompile Include="geometry.cpp" />
     <ClCompile Include="Graph.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="PathFinding.cpp" />
+    <ClCompile Include="Obstacles.cpp" />
     <ClCompile Include="Point.cpp" />
     <ClCompile Include="Search.cpp" />
+    <ClCompile Include="Trapezoid.cpp" />
     <ClCompile Include="Tree.cpp" />
     <ClCompile Include="triangulation.cpp" />
   </ItemGroup>
@@ -159,9 +160,10 @@
     <ClInclude Include="circ_iter.h" />
     <ClInclude Include="geometry.h" />
     <ClInclude Include="Graph.h" />
-    <ClInclude Include="PathFinding.h" />
+    <ClInclude Include="Obstacles.h" />
     <ClInclude Include="Point.h" />
     <ClInclude Include="Search.h" />
+    <ClInclude Include="Trapezoid.h" />
     <ClInclude Include="Tree.h" />
     <ClInclude Include="triangulation.h" />
   </ItemGroup>

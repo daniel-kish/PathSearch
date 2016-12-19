@@ -83,3 +83,8 @@ std::ostream& operator<< (std::ostream& os, Graph const& g)
 	os << "]\n";
 	return os;
 }
+
+bool operator<(Graph::Node::Ref p, Graph::Node::Ref q)
+{
+	return p->triangle < q->triangle;
+}

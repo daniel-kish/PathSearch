@@ -6,22 +6,42 @@
 #include "Graph.h"
 #include "triangulation.h"
 #include <random>
+#include <fstream>
 #include <deque>
 #include <set>
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include "Search.h"
 #include "Tree.h"
-#include "PathFinding.h"
+#include "Obstacles.h"
 
 using namespace ci;
 using namespace ci::app;
 using namespace std::literals;
 using Node = Graph::Node;
+using MLine = ::Line;
 
-std::vector<Point> mkSceneHull(int n=20)
+bool insideRect(Rect const& r, Point const& p)
 {
-	return rectHull(Rect({500.0,300.0}, {-250.0,-150.0}), n, n);
+	Point leftBot = r.origin;
+	Point rightTop = r.origin + r.dir;
+
+	return p.x > leftBot.x && p.x < rightTop.x && p.y > leftBot.y && p.y < rightTop.y;
+}
+
+std::vector<std::vector<Point>> readPoly(std::ifstream& input)
+{
+	std::vector<std::vector<Point>> polys;
+
+	while (!input.eof())
+	{
+		polys.push_back(std::vector<Point>{});
+		double x, y;
+		while (input >> x >> y) {
+			polys.back().push_back(Point{x,y});
+		}
+	}
+	return polys;
 }
 
 class BasicApp : public App {
@@ -29,6 +49,8 @@ public:
 	void setup() override
 	{
 		r = Rect({500.0,300.0}, {-250.0,-150.0});
+
+		grower = std::make_unique<ObstacleGrower>(r, 50, 30, 0.2f);
 		auto src = DataSourcePath::create(
 			R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\BasicApp\fonts\Consolas.ttf)"
 		);
@@ -36,8 +58,10 @@ public:
 		graphEdgesCol = Color("slategray");
 		graphVerticesCol = Color("white");
 
-		pts = rectHull(r,40,24);
-		g = triangulatePolygon(pts);
+		a = toVec2(r.origin);
+		b = toVec2(r.origin + Point{r.dir.x,0.0});
+		c = b + vec2{0.0f,float(r.dir.y)};
+		d = a + vec2{0.0f,float(r.dir.y)};
 	}
 	void mouseDown(MouseEvent event) override;
 	void mouseMove(MouseEvent event) override;
@@ -45,14 +69,12 @@ public:
 	void mouseWheel(MouseEvent event) override;
 	void draw() override;
 private:
-	vec2 toVec2(Point const& p) { return {float(p.x), float(p.y)}; }
-	Rect r;
-	Graph g;
-	std::vector<Point> pts;
-	void grawGraph()
+	vec2 toVec2(Point const& p) { return{float(p.x), float(p.y)}; }
+	/*void grawGraph()
 	{
+		std::vector<Point> const& pts = grower->points();
 		gl::lineWidth(2.0f);
-		for (auto& n : g.nodes)
+		for (auto const& n : grower->graph().nodes)
 		{
 			gl::color(graphEdgesCol);
 			gl::begin(GL_LINE_STRIP);
@@ -62,50 +84,89 @@ private:
 			gl::vertex(toVec2(pts[n.triangle[0]]));
 			gl::end();
 		}
-	}
-	
-	BFSTree bfs;
-	void drawBFSTree()
-	{
-		vec2 tri[3];
-		
-		gl::color(Color("darkgreen"));
-		for (auto node : bfs.opened)
-		{
-			for (int i=0; i<3; i++) tri[i] = toVec2(pts[node->triangle[i]]);
-			gl::drawSolidTriangle(tri);
-		}
-		
-		gl::color(Color("violet"));
-		for (auto const& trian : bfs.closed)
-		{
-			for (int i = 0; i<3; i++) tri[i] = toVec2(pts[trian[i]]);
-			gl::drawSolidTriangle(tri);
-		}
-		if (bfs.opened.empty()) return;
-		gl::color(Color("red"));
-		for (int i = 0; i<3; i++) tri[i] = toVec2(pts[bfs.head->triangle[i]]);
-		gl::drawSolidTriangle(tri);
-	}
-	void drawQ()
-	{
-		vec2 tri[3];
+	}*/
 
-		gl::color(Color("red"));
-		for (auto node : q)
+	/*std::vector<MLine> voronoiLines;
+	void mkVoronoi()
+	{
+		std::deque<Graph::Node::Ref> q{g.nodes.begin()};
+		std::set<Graph::Node::Ref> c;
+
+		while (!q.empty())
 		{
-			for (int i = 0; i<3; i++) tri[i] = toVec2(pts[node->triangle[i]]);
-			gl::drawSolidTriangle(tri);
+			auto head = q.front(); q.pop_front();
+			auto res = c.insert(head);
+			if (!res.second) continue;
+
+			for (auto neib : head->refs)
+			{
+				auto c = circumCenter(pts, neib->triangle);
+				voronoiLines.push_back(MLine{
+					circumCenter(pts,head->triangle),
+					circumCenter(pts,neib->triangle)
+				});
+				q.push_back(neib);
+			}
 		}
-		gl::color(Color("blue"));
-		for (auto const& trian : inner)
-		{
-			for (int i = 0; i<3; i++) tri[i] = toVec2(pts[trian[i]]);
-			gl::drawSolidTriangle(tri);
-		}
+	}*/
+
+	Rect r;
+	vec2 a, b, c, d;
+
+	std::unique_ptr<ObstacleGrower> grower;
+
+	std::vector<std::vector<Point>> polys;
+	void drawPolys()
+	{
+		for (Poly const& poly : polys) 
+			drawPoly(poly);
 	}
-	std::deque<Graph::Node::Ref> q;
-	std::set<Triangle> inner;
+	void drawPoly(Poly const& poly)
+	{
+		gl::begin(GL_LINE_STRIP);
+		for (const Point& p : poly)
+			gl::vertex(toVec2(p));
+		gl::vertex(toVec2(poly.front()));
+		gl::end();
+	}
+	//void drawObstacle()
+	//{
+	//	gl::lineWidth(1.0f);
+	//	vec2 tri[3];
+	//	for (auto& obs : grower->sets) 
+	//	{
+	//		for (auto treenode : obs)
+	//		{
+	//			gl::color(Color("darkturquoise"));
+	//			for (int i = 0; i < 3; i++) tri[i] = toVec2(grower->points()[treenode.node->triangle[i]]);
+	//			gl::drawSolidTriangle(tri);
+	//		}
+	//		/*for (auto treenode : obs) 
+	//		{
+	//			if (treenode.par != obs.end()) {
+	//				gl::color(Color("black"));
+	//				vec2 cen, parcen;
+	//				cen = toVec2(triangleCenter(pts, treenode.node->triangle));
+	//				parcen = toVec2(triangleCenter(pts, treenode.par->node->triangle));
+	//				gl::drawLine(cen, parcen);
+	//				gl::drawSolidCircle(cen, 2.0f);
+	//			}
+	//			else {
+	//				gl::color(Color("green"));
+	//				gl::drawSolidCircle(toVec2(triangleCenter(pts, treenode.node->triangle)), 2.0f);
+	//			}
+	//		}*/
+	//	}
+	//	for (auto& bnd : grower->boundaries)
+	//	{
+	//		for (auto node : bnd)
+	//		{
+	//			gl::color(Color("darkviolet"));
+	//			for (int i = 0; i < 3; i++) tri[i] = toVec2(grower->points()[node->triangle[i]]);
+	//			gl::drawSolidTriangle(tri);
+	//		}
+	//	}
+	//}
 
 	Point mousePos;
 	int height, wid;
@@ -135,65 +196,32 @@ void BasicApp::mouseWheel(MouseEvent event)
 
 void BasicApp::mouseDown(MouseEvent event)
 {
-	auto fnd = std::find_if(g.nodes.begin(), g.nodes.end(), [this](Graph::Node const& node) {
-		return insideTriangle(pts, node.triangle, mousePos) == Position::in;
-	});
-	if (fnd == g.nodes.end()) return;
-	bfs.setStart(fnd);
+	
 }
 
 void BasicApp::keyDown(KeyEvent event)
 {
-	if (event.getCode() == 't')
-		toDelaunay(pts, g);
-	else if (event.getCode() == 'r') {
-		bfs.setStart(g.nodes.begin());
+	/*if (event.getCode() == 'o') {
+		grower->growObstacle();
 	}
-	else if (event.getCode() == 'b') {
-		bfs.step();
-	}
-	else if (event.getCode() == 'k') {
-		auto root = bfs.head;
-		while (bfs.lvl < 20)
-			bfs.step();
-		for (auto node : bfs.opened)
-			bfs.closed.insert(node->triangle);
-		bfs.opened.clear();
-
-		q.push_back(root);
-	}
-	else if (event.getCode() == 'g') {
-		
-		auto in_closed = [this](Graph::Node::Ref neib) {
-			return bfs.closed.find(neib->triangle) != bfs.closed.end();
+	else if (event.getCode() == 'w') {
+		if (grower->edge_lists.empty()) return;
+		std::ofstream file{
+			R"(C:\Users\Daniel\Documents\visual studio 2015\Projects\PathSearch\poly.dat)"
 		};
-		auto in_inner = [this](Graph::Node::Ref neib) {
-			return inner.find(neib->triangle) != inner.end();
-		};
+		auto polypts = grower->getPoly(grower->edge_lists.size()-1);
+		for (Point p : polypts)
+			file << p.x << ' ' << p.y << '\n';
+	}*/
 
-		if (!q.empty())
-		{
-			auto h = q.front(); q.pop_front();
-			if (in_inner(h)) return;
-			bool all_in = std::all_of(begin(h->refs), end(h->refs), in_closed);
-			if (all_in) {
-				inner.insert(h->triangle);
-				for (auto neib : h->refs) q.push_back(neib);
-			}
-		}
-		else {
-			std::set<Triangle> bnd;
-			std::set_difference(bfs.closed.begin(), bfs.closed.end(), inner.begin(), inner.end(),
-				std::inserter(bnd, bnd.end()));
-			bfs.closed = bnd;
-			inner.clear();
-		}
-			
-	}
-	else if (event.getCode() == 'p') {
-		auto ins = rectInsides(r,40,24);
-		for (Point const& p : ins)
-			addNewPoint(pts, g, p);
+	if (event.getCode() == 'o') {
+		grower->clear();
+		int n = 1;
+		while (grower->sets.size() < n)
+			grower->growObstacle();
+		polys.clear();
+		for (int i = 0; i < grower->sets.size(); ++i)
+			polys.push_back(grower->getPoly(i));
 	}
 }
 
@@ -211,13 +239,24 @@ void BasicApp::draw()
 	gl::color(Color("white"));
 	gl::drawCoordinateFrame(30.f);
 
-	drawBFSTree();
-	drawQ();
+	gl::drawLine(a, b); gl::drawLine(b, c);
+	gl::drawLine(c, d); gl::drawLine(d, a);
 
-	grawGraph();
-	gl::color(graphVerticesCol);
-	for (auto& v : pts)
-		gl::drawSolidCircle(toVec2(v), 1.0f);
+	drawPolys();
+	
+	//drawObstacle();
+	//grawGraph();
+	//
+	//gl::color(Color("orangered"));
+	//gl::lineWidth(2.5f);
+	//for (MLine const& l : voronoiLines)
+	//{
+	//	gl::drawLine(toVec2(l.a), toVec2(l.b));
+	//}
+	//
+	//gl::color(graphVerticesCol);
+	//for (auto const& v : grower->points())
+	//	gl::drawSolidCircle(toVec2(v), 0.35f);
 
 	{
 		gl::pushModelMatrix();

@@ -34,3 +34,5 @@ struct Graph
 };
 
 std::ostream& operator<< (std::ostream& os, Graph const& g);
+
+bool operator<(Graph::Node::Ref p, Graph::Node::Ref q);

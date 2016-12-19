@@ -1,4 +1,5 @@
 #include "Point.h"
+#include <tuple>
 
 bool operator==(Point const& p, Point const& q)
 {
@@ -10,6 +11,10 @@ bool operator!=(Point const& p, Point const& q)
 	return !(p == q);
 }
 
+bool operator<(Point const& p, Point const& q)
+{
+	return std::make_tuple(p.x, p.y) < std::make_tuple(q.x, q.y);
+}
 
 Point operator+(Point const& p, Point const& q)
 {

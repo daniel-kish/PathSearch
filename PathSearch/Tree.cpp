@@ -1,8 +1,15 @@
 #include "Tree.h"
 
-BFSTree::BFSTree(Graph::Node::Ref begin, float p)
-	: opened{begin}, closed{}, head{begin}, prob{p}
+bool operator<(TreeNode const& p, TreeNode const& q)
 {
+	return p.node < q.node;
+}
+
+BFSTree::BFSTree(Graph::Node::Ref begin, float p)
+	: mt{std::random_device{}()}, opened{}, closed{}, head{}, prob{p}
+{
+	opened.push_back({begin,closed.end()});
+	head = opened.back();
 }
 
 BFSTree::BFSTree(float p)
@@ -11,8 +18,8 @@ BFSTree::BFSTree(float p)
 
 void BFSTree::step()
 {
-	std::bernoulli_distribution d(0.98);
-	if (opened.empty() /*|| lvl > 70*/) return;
+	std::bernoulli_distribution d(prob);
+	if (opened.empty()) return;
 
 	if (d(mt)) {
 		head = opened.back();
@@ -22,11 +29,11 @@ void BFSTree::step()
 		head = opened.front();
 		opened.pop_front();
 	}
-	auto res = closed.insert(head->triangle);
+	auto res = closed.insert(head);
 	if (!res.second) return;
 
-	for (Graph::Node::Ref neib : head->refs)
-		opened.push_back(neib);
+	for (Graph::Node::Ref neib : head.node->refs)
+		opened.push_back({neib,res.first});
 	lvl++;
 }
 
@@ -40,7 +47,7 @@ void BFSTree::clear()
 void BFSTree::setStart(Graph::Node::Ref begin)
 {
 	clear();
-	opened.push_back(begin);
+	opened.push_back({begin,closed.end()});
 	head = opened.front();
 }
 
