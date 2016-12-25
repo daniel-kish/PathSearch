@@ -8,9 +8,13 @@
 using Triangle = Simplex<3>;
 using Edge = Simplex<2>;
 
-double doubleEps = 1.0e-2;
+double doubleEps = 1.0e-6;
 
-bool zero(double val) { return abs(val) < doubleEps; }
+bool zero(double val) { return std::abs(val) < doubleEps; }
+bool close(double v, double u)
+{
+	return zero(u - v);
+}
 
 LinesParallel::LinesParallel(std::string s) : msg(std::move(s))
 {}
@@ -385,7 +389,7 @@ std::vector<Point> polygonPts(std::vector<Point> const& pts, std::vector<int> po
 
 bool insidePoly(std::vector<Point> const& poly, Point const& p)
 {
-	std::mt19937 mt{};
+	std::mt19937 mt{std::random_device{}()};
 	std::uniform_real_distribution<double> ud(0.0, 1.0);
 	Point dir{ud(mt),ud(mt)};
 	int intersections = 0;

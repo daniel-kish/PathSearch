@@ -17,7 +17,7 @@ public:
 	int max_tree_lvl;
 	float probability_balance;
 
-	std::vector<std::set<TreeNode>> sets;
+	std::vector<NodeSet> sets;
 	std::vector<NodeSet> boundaries;
 	std::vector<PolyEdges> edge_lists;
 
@@ -30,7 +30,7 @@ public:
 };
 
 NodeSet boundary(NodeSet& obs);
-std::vector<Edge> boundaryEdges(std::set<TreeNode>& obs);
+std::vector<Edge> boundaryEdges(NodeSet& obs);
 bool check_poly(std::vector<Edge>& edges);
 
 template <class T>

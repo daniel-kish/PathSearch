@@ -4,20 +4,20 @@
 #include "Graph.h"
 #include <random>
 
-struct TreeNode {
-	Graph::Node::Ref node;
-	std::set<TreeNode>::iterator par;
-};
-
-bool operator<(TreeNode const& p, TreeNode const& q);
+//struct TreeNode {
+//	Graph::Node::Ref node;
+//	std::set<TreeNode>::iterator par;
+//};
+//
+//bool operator<(TreeNode const& p, TreeNode const& q);
 
 class BFSTree
 {
 public:
 	std::mt19937 mt;
-	std::deque<TreeNode> opened;
-	std::set<TreeNode> closed;
-	TreeNode head;
+	std::deque<Graph::Node::Ref> opened;
+	std::set<Graph::Node::Ref> closed;
+	Graph::Node::Ref head;
 	int lvl{0};
 	float prob;
 	explicit BFSTree(Graph::Node::Ref begin, float p=0.98);

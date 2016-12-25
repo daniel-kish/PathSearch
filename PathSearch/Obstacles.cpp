@@ -7,7 +7,7 @@
 
 ObstacleGrower::ObstacleGrower(Rect r_, int nx_, int ny_, float inner_to_hull_pts_ratio_)
 	: r{r_}, nx{nx_}, ny{ny_}, inner_to_hull_pts_ratio{inner_to_hull_pts_ratio_},
-	probability_balance{0.9f}, mt{std::random_device{}()}
+	probability_balance{0.9f}, mt{/*std::random_device{}()*/}
 {
 	pts = rectHull(r, nx, ny);
 	g = triangulatePolygon(pts);
@@ -38,6 +38,10 @@ void ObstacleGrower::growObstacle()
 	int idx = ud(mt);
 	std::advance(root, idx);
 	
+	for (auto& set : sets)
+		if (set.find(root) != set.end())
+			return;
+
 	std::bernoulli_distribution d(probability_balance);
 	BFSTree bfs(root);
 	while (bfs.lvl < max_tree_lvl)
@@ -60,7 +64,7 @@ void ObstacleGrower::growObstacle()
 		for (auto const& boundary : boundaries)
 		{
 			for (auto node : boundary)
-				if (have_common_vertices(bfs.head.node->triangle, node->triangle))
+				if (have_common_vertices(bfs.head->triangle, node->triangle))
 				{
 					interferes = true;
 					break;
@@ -71,22 +75,17 @@ void ObstacleGrower::growObstacle()
 
 		auto res = bfs.closed.insert(bfs.head);
 
-		for (Graph::Node::Ref neib : bfs.head.node->refs)
-			bfs.opened.push_back(TreeNode{neib,res.first});
+		for (Graph::Node::Ref neib : bfs.head->refs)
+			bfs.opened.push_back(neib);
 		bfs.lvl++;
 	}
 	if (bfs.closed.empty()) return;
 
-	NodeSet new_set;
-	std::transform(begin(bfs.closed), end(bfs.closed),
-		std::inserter(new_set, new_set.begin()), [](TreeNode const& tn) {
-		return tn.node;
-	});
-
 	std::vector<Edge> edge_list = boundaryEdges(bfs.closed);
 	if (!check_poly(edge_list)) return;
+
 	edge_lists.push_back(std::move(edge_list));
-	boundaries.push_back(boundary(new_set));
+	boundaries.push_back(boundary(bfs.closed));
 	sets.push_back(std::move(bfs.closed));
 }
 
@@ -133,12 +132,12 @@ NodeSet boundary(NodeSet& obs)
 	return bnd;
 }
 
-std::vector<Edge> boundaryEdges(std::set<TreeNode>& obs)
+std::vector<Edge> boundaryEdges(NodeSet& obs)
 {
-	std::deque<Graph::Node::Ref> q{obs.begin()->node};
+	std::deque<Graph::Node::Ref> q{*obs.begin()};
 	std::set<Graph::Node::Ref> closed;
 	auto in_obs = [&obs](Graph::Node::Ref neib) {
-		return obs.find({neib,obs.end()}) != obs.end();
+		return obs.find(neib) != obs.end();
 	};
 	std::vector<Edge> edges;
 

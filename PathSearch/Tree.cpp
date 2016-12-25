@@ -1,15 +1,13 @@
 #include "Tree.h"
 
-bool operator<(TreeNode const& p, TreeNode const& q)
-{
-	return p.node < q.node;
-}
+//bool operator<(TreeNode const& p, TreeNode const& q)
+//{
+//	return p.node < q.node;
+//}
 
 BFSTree::BFSTree(Graph::Node::Ref begin, float p)
-	: mt{std::random_device{}()}, opened{}, closed{}, head{}, prob{p}
+	: mt{std::random_device{}()}, opened{begin}, closed{}, head{begin}, prob{p}
 {
-	opened.push_back({begin,closed.end()});
-	head = opened.back();
 }
 
 BFSTree::BFSTree(float p)
@@ -32,8 +30,8 @@ void BFSTree::step()
 	auto res = closed.insert(head);
 	if (!res.second) return;
 
-	for (Graph::Node::Ref neib : head.node->refs)
-		opened.push_back({neib,res.first});
+	for (Graph::Node::Ref neib : head->refs)
+		opened.push_back(neib);
 	lvl++;
 }
 
@@ -47,7 +45,7 @@ void BFSTree::clear()
 void BFSTree::setStart(Graph::Node::Ref begin)
 {
 	clear();
-	opened.push_back({begin,closed.end()});
+	opened.push_back(begin);
 	head = opened.front();
 }
 

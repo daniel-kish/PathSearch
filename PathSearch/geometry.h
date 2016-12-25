@@ -8,6 +8,7 @@
 
 extern double doubleEps;
 bool zero(double val);
+bool close(double v, double u);
 
 struct Line {
 	Point a, b;
