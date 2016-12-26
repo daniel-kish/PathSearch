@@ -265,11 +265,12 @@ void BasicApp::keyDown(KeyEvent event)
 			pathfinder = std::make_unique<DelaunayPathFinder>(r, polys);
 		}
 	}
-	if (event.getCode() == 'v') {
+	if (event.getCode() == 'v')
 		mkVoronoi();
-	}
 	if (event.getCode() == 'f') {
 		pathfinder->find_path();
+		if (pathfinder->path.empty())
+			msg = "no path!";
 	}
 }
 
@@ -319,7 +320,8 @@ void BasicApp::draw()
 				tri[j] = toVec2(pathfinder->pts[node->triangle[j]]);
 			gl::drawSolidTriangle(tri);
 		}
-		gl::color(Color("black"));
+		gl::color(Color("orangered"));
+		gl::lineWidth(2.0f);
 		if (!pathfinder->path_points.empty()) {
 			for (int i = 0; i < pathfinder->path_points.size() - 1; ++i)
 			{

@@ -6,7 +6,7 @@
 DelaunayPathFinder::DelaunayPathFinder(Rect r, std::vector<Poly> const& polys)
 	: boundingRect{r}, obstacles{polys}
 {
-	pts = rectHull(r, 50, 30);
+	pts = rectHull(r, 10, 10);
 	g = triangulatePolygon(pts);
 
 	last_hull_pos = pts.size()-1;
@@ -44,27 +44,24 @@ bool DelaunayPathFinder::set_point(Point const& p)
 
 void DelaunayPathFinder::find_path()
 {
-	auto dist_to_target = [this](Graph::Node::Ref const& pn) {
-		Point cp; TriPos p;
-		std::tie(cp,p) = ClosestPointOnTriangle(src_trg[1],
-			pts[pn->triangle[0]], pts[pn->triangle[1]], pts[pn->triangle[2]]);
-		return dist(cp, src_trg[1]);
-	};
-	auto dist_greater_comparator = [this](PathNode const& p, PathNode const& q) {
-		return p.dist_to_trg > q.dist_to_trg;
-	};
+	path.clear();
+	path_points.clear();
 	if (src_trg.size() < 2) return;
 
+	if (obstacleNodes.find(tri_src_trg[0]) != obstacleNodes.end())
+		return;
+	if (obstacleNodes.find(tri_src_trg[1]) != obstacleNodes.end())
+		return;
+
 	std::set<PathNode> c;
-	std::priority_queue<PathNode,std::vector<PathNode>,decltype(dist_greater_comparator)>
-		q(dist_greater_comparator);
-	q.push({tri_src_trg[0], c.end(),dist_to_target(tri_src_trg[0])});
+	std::deque<PathNode> q;
+	q.push_back({tri_src_trg[0], c.end()});
 
 	bool found{false};
 	std::set<PathNode>::iterator last;
 	while (!q.empty())
 	{
-		auto h = q.top(); q.pop();
+		auto h = q.front(); q.pop_front();
 
 		auto r = c.insert(h);
 		if (!r.second) continue;
@@ -78,7 +75,7 @@ void DelaunayPathFinder::find_path()
 		for (auto neib : h.node->refs)
 		{
 			if (obstacleNodes.find(neib) != obstacleNodes.end()) continue;
-			q.push({neib,r.first,dist_to_target(neib)});
+			q.push_back({neib,r.first});
 		}
 	}
 	path.clear();

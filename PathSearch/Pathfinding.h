@@ -8,7 +8,6 @@
 struct PathNode {
 	Graph::Node::Ref node;
 	std::set<PathNode>::iterator par;
-	double dist_to_trg;
 };
 
 bool operator<(PathNode const& p, PathNode const& q);
