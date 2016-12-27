@@ -171,7 +171,7 @@ enum PolyOrientation {
 };
 using Poly = std::vector<Point>;
 
-PolyOrientation orientation(std::vector<Point>& poly);
+PolyOrientation orientation(std::vector<Point> const& poly);
 std::vector<Point> polygonPts(std::vector<Point> const& pts, std::vector<int> poly);
 
 bool insidePoly(std::vector<Point> const& poly, Point const& p);

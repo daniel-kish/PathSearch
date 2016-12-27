@@ -357,7 +357,7 @@ Point triangleCenter(std::vector<Point> const& v, Triangle const& t)
 }
 
 
-PolyOrientation orientation(std::vector<Point>& poly)
+PolyOrientation orientation(std::vector<Point> const& poly)
 {
 	auto x = [](Point const& p) {return p.x; };
 	auto y = [](Point const& p) {return p.y; };

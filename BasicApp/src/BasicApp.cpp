@@ -1,72 +1,50 @@
-
 #include "cinder/app/App.h"
 #include "cinder/app/RendererGl.h"
 #include "cinder/gl/gl.h"
 #include "Point.h"
-#include "geometry.h"
 #include <fstream>
 #define _USE_MATH_DEFINES
 #include <cmath>
-#include "Tree.h"
-#include "Obstacles.h"
-#include "Trapezoid.h"
-#include "triangulation.h"
-#include "Pathfinding.h"
+#include "DCEL.h"
+#include <random>
 
 using namespace ci;
 using namespace ci::app;
 using namespace std::literals;
-using Node = Graph::Node;
-using MLine = ::Line;
 
-bool insideRect(Rect const& r, Point const& p)
-{
-	Point leftBot = r.origin;
-	Point rightTop = r.origin + r.dir;
-
-	return p.x > leftBot.x && p.x < rightTop.x && p.y > leftBot.y && p.y < rightTop.y;
-}
-
-std::vector<Poly> readPoly(std::ifstream& input)
-{
-	std::vector<std::vector<Point>> polys;
-
-	while (!input.eof())
-	{
-		Poly poly;
-		double x, y;
-		int sz{0};
-		input >> sz;
-		poly.reserve(sz);
-
-		while (sz--) {
-			input >> x >> y;
-			poly.push_back({x,y});
-		}
-		if (!poly.empty()) polys.push_back(poly);
-	}
-	return polys;
-}
 
 class BasicApp : public App {
 public:
 	void setup() override
 	{
-		r = Rect({500.0,300.0}, {-250.0,-150.0});
+		dcel = std::make_unique<DCEL>(Point{100,100}, Point{0,0});
 
-		grower = std::make_unique<ObstacleGrower>(r, 50, 30, 0.7f);
-		grower->max_tree_lvl *= 1.5;
+		dcel->add_vertex({300,0}, dcel->halfedges.begin());
+
+		auto last = std::prev(dcel->halfedges.end());
+
+		dcel->split_face(last, dcel->vertices.begin());
+		dcel->split_edge(last, {50,50});
+
+		last = last->next;
+		Point const& a = last->target->p;
+		Point const& b = last->next->target->p;
+		Point const& c = last->next->next->target->p;
+		Point center = (a + b + c)*0.33333f;
+		dcel->add_vertex(center, last);
+		auto v = last->next->target;
+		dcel->split_face(last->prev->prev, v);
+
+		last = last->next->twin->next;
+
+		dcel->split_face(last, v);
+		cur = dcel->halfedges.begin();
 		auto src = DataSourcePath::create(
 			R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\BasicApp\fonts\Consolas.ttf)"
 		);
 		font = ci::Font(src, 18.f);
 		graphEdgesCol = Color("slategray");
 		graphVerticesCol = Color("white");
-		 
-		a = toVec2(r.origin);
-		b = toVec2(r.origin + Point{r.dir.x,0.0});
-		c = b + vec2{0.0f,float(r.dir.y)};
-		d = a + vec2{0.0f,float(r.dir.y)};
 	}
 	void mouseDown(MouseEvent event) override;
 	void mouseMove(MouseEvent event) override;
@@ -75,115 +53,76 @@ public:
 	void draw() override;
 private:
 	vec2 toVec2(Point const& p) { return{float(p.x), float(p.y)}; }
-	void drawGrowerTrian()
+	
+
+	void setHalfedgeColor(int i)
 	{
-		std::vector<Point> const& pts = grower->points();
-		gl::lineWidth(2.0f);
-		for (auto const& n : grower->graph().nodes)
-		{
-			gl::color(graphEdgesCol);
-			gl::begin(GL_LINE_STRIP);
-			gl::vertex(toVec2(pts[n.triangle[0]]));
-			gl::vertex(toVec2(pts[n.triangle[1]]));
-			gl::vertex(toVec2(pts[n.triangle[2]]));
-			gl::vertex(toVec2(pts[n.triangle[0]]));
-			gl::end();
-		}
+		std::mt19937 mt(i);
+		std::uniform_real_distribution<float> d(0.0f, 1.0f);
+		int max = dcel->halfedges.size()+1;
+		float f = float(i) / float(max);
+		gl::color(d(mt), d(mt), d(mt));
 	}
-	void drawObstacle()
-	{
-		gl::lineWidth(2.0f);
-		for (Poly& poly : polys)
-		{
-			ci::PolyLine2f pl;
-			for (Point& p : poly)
-				pl.push_back(toVec2(p));
-			pl.push_back(toVec2(poly.front()));
-
-			gl::color(Color("darkslategray"));
-			gl::drawSolid(pl);
-
-			gl::color(Color("black"));
-			gl::begin(GL_LINE_STRIP);
-			for (Point& p : poly)
-				gl::vertex(toVec2(p));
-			gl::vertex(toVec2(poly.front()));
-			gl::end();
-		}
-	}
-	void drawGrowerSets()
-	{
-		gl::color(Color("darkslategray"));
-		for (NodeSet& set : grower->sets)
-		{
-			vec2 tri[3];
-			for (auto node : set)
-			{
-				for (int i = 0; i < 3; i++) tri[i] = toVec2(grower->points()[node->triangle[i]]);
-				gl::drawSolidTriangle(tri);
-			}
-		}
-	}
-
-	std::vector<MLine> voronoiLines;
-	void mkVoronoi()
-	{
-		std::deque<Graph::Node::Ref> q{pathfinder->g.nodes.begin()};
-		std::set<Graph::Node::Ref> c;
-
-		while (!q.empty())
-		{
-			auto head = q.front(); q.pop_front();
-			auto res = c.insert(head);
-			if (!res.second) continue;
-
-			for (auto neib : head->refs)
-			{
-				auto c = circumCenter(pathfinder->pts, neib->triangle);
-				if (pathfinder->in_any_obstacle(c)) continue;
-				voronoiLines.push_back(MLine{
-					circumCenter(pathfinder->pts, head->triangle),
-					c
-				});
-				q.push_back(neib);
-			}
-		}
-	}
-
-	Rect r;
-	vec2 a, b, c, d;
-
 	void drawPoint(Point const& p, float rad = 1.5f) {
-		gl::drawSolidCircle(toVec2(p), rad);
+		gl::drawSolidCircle(toVec2(p), rad/scaleFac, 20);
 	}
-	void drawLine(Point& p, Point& q)
+	void drawLine(Point const& p, Point const& q)
 	{
 		gl::drawLine(toVec2(p), toVec2(q));
 	}
-	
-	std::unique_ptr<ObstacleGrower> grower;
-
-	std::vector<std::vector<Point>> polys;
-
-	std::unique_ptr<DelaunayPathFinder> pathfinder;
-	void drawTrian()
+	void drawHalfedge(DCEL::Halfedge const& h)
 	{
-		if (!pathfinder) return;
-		const std::vector<Point>& pts = pathfinder->pts;
-		const Graph& g = pathfinder->g;
-		gl::lineWidth(1.5f);
-		for (auto const& n : g.nodes)
-		{
-			gl::color(graphEdgesCol);
-			gl::begin(GL_LINE_STRIP);
-			gl::vertex(toVec2(pts[n.triangle[0]]));
-			gl::vertex(toVec2(pts[n.triangle[1]]));
-			gl::vertex(toVec2(pts[n.triangle[2]]));
-			gl::vertex(toVec2(pts[n.triangle[0]]));
-			gl::end();
-		}
+		Point const& target = h.target->p;
+		Point const& source = h.prev->target->p;
+		Point mid = (source + target)*0.5;
+		setHalfedgeColor(h.i);
+		gl::lineWidth(2.0f);
+		drawLine(target, mid);
+		gl::color(Color("black"));
+		drawPoint(target,3.0f);
 	}
+	void drawArrow(Point const& p, Point const& q)
+	{
 
+	}
+	Point facecenter(DCEL::Face const& f)
+	{
+		auto h = f.halfedge;
+		auto i = h;
+		Point sum{0,0};
+		int n = 0;
+		while (true)
+		{
+			sum = sum + i->target->p;
+			n++;
+			i = i->next;
+			if (i == h) break;
+		}
+		return sum * (1.0 / double(n));
+	}
+	void drawSolidFace(DCEL::Face const& f)
+	{
+		auto h = f.halfedge;
+		auto i = h;
+		
+		ci::PolyLine2 pl;
+		
+		while (true) 
+		{
+			pl.push_back(toVec2(i->target->p));
+			i = i->next;
+			if (i == h) break;
+		}
+		gl::color(0.5f, 0.5f, 0.5f, 0.5f);
+		gl::drawSolid(pl);
+	}
+	void drawFace(DCEL::Face const& f)
+	{
+		std::ostringstream os; os << 'f' << f.i;
+		gl::drawString(os.str(), toVec2(facecenter(f)), Color("black"), font);
+	}
+	std::unique_ptr<DCEL> dcel;
+	DCEL::EdgeList::iterator cur;
 
 	Point mousePos;
 	int height, wid;
@@ -203,75 +142,30 @@ void BasicApp::mouseMove(MouseEvent event)
 	mousePos = mousePos - Point{wid*0.5f, height*0.5f};
 	mousePos.y *= -1.0;
 	mousePos = mousePos * (1.0 / scaleFac);
-	
-	//std::ostringstream os;
-	//os << mousePos;
-	//msg = os.str();
 }
 
 void BasicApp::mouseWheel(MouseEvent event)
 {
 	auto incr = event.getWheelIncrement();
 	scaleFac *= std::pow(1.05, incr);
+
+	std::ostringstream os;
+	os << scaleFac;
+	msg = os.str();
 }
 
 void BasicApp::mouseDown(MouseEvent event)
 {
-	if (!pathfinder) return;
-	bool res = pathfinder->set_point(mousePos);
-
-	msg = res ? "enter another point" : "you've entered a wrong point";
 }
 
 void BasicApp::keyDown(KeyEvent event)
 {
-	if (event.getCode() == 'o') {
-		grower->clear();
-		grower->probability_balance = 0.5;
-		int n = 30;
-		while (n--)
-			grower->growObstacle();
-		/*int trlvl = grower->max_tree_lvl;
-		grower->max_tree_lvl *= 4.0;
-		n = grower->sets.size();
-		while (grower->sets.size() == n)
-			grower->growObstacle();
-		grower->max_tree_lvl = trlvl;*/
-		
-		polys.clear();
-		for (int i = 0; i < grower->sets.size(); ++i)
-			polys.push_back(grower->getPoly(i));
-	}
-	if (event.getCode() == 'w') {
-		std::ofstream os(
-		R"(C:\Users\Daniel\Documents\visual studio 2015\Projects\PathSearch\poly2.dat)"
-		);
-		for (Poly& poly : polys)
-		{
-			os << poly.size() << '\n';
-			for (Point& p : poly)
-				os << p.x << ' ' << p.y << '\n';
-			os << '\n';
-		}
-	}
-	if (event.getCode() == 'r') {
-		std::ifstream is(
-			R"(C:\Users\Daniel\Documents\visual studio 2015\Projects\PathSearch\poly1.dat)"
-		);
-		polys = readPoly(is);
-	}
-	if (event.getCode() == 't') {
-		if (!pathfinder) {
-			pathfinder = std::make_unique<DelaunayPathFinder>(r, polys);
-		}
-	}
-	if (event.getCode() == 'v')
-		mkVoronoi();
-	if (event.getCode() == 'f') {
-		pathfinder->find_path();
-		if (pathfinder->path.empty())
-			msg = "no path!";
-	}
+	if (event.getCode() == 'n')
+		cur = cur->next;
+	if (event.getCode() == 'p')
+		cur = cur->prev;
+	if (event.getCode() == 't')
+		cur = cur->twin;
 }
 
 void BasicApp::draw()
@@ -286,50 +180,17 @@ void BasicApp::draw()
 	gl::clear(Color("white"));
 
 	gl::color(Color("black"));
-	gl::drawLine(a, b); gl::drawLine(b, c);
-	gl::drawLine(c, d); gl::drawLine(d, a);
-
-	drawObstacle();
-
-	drawTrian();
-	//drawGrowerSets();
-	//drawGrowerTrian();
-
-	gl::color(Color("red"));
-	for (MLine& l : voronoiLines)
-		drawLine(l.a,l.b);
-
-	vec2 tri[3];
-	if (pathfinder) {
-		for (int i = 0; i < pathfinder->src_trg.size(); ++i) {
-			if (!i) gl::color(Color("red"));
-			else gl::color(Color("blue"));
-			drawPoint(pathfinder->src_trg[i], 2.5f);
-
-			if (!i) gl::color(1.0f, 0.0f, 0.0f, 0.3f);
-			else gl::color(0.0f, 0.0f, 1.0f, 0.3f);
-			
-			for (int j = 0; j < 3; j++) 
-				tri[j] = toVec2(pathfinder->pts[pathfinder->tri_src_trg[i]->triangle[j]]);
-			gl::drawSolidTriangle(tri);
-		}
-		gl::color(0.0f, 1.0f, 0.0f, 0.5f);
-		for (auto node : pathfinder->path)
-		{
-			for (int j = 0; j < 3; j++)
-				tri[j] = toVec2(pathfinder->pts[node->triangle[j]]);
-			gl::drawSolidTriangle(tri);
-		}
-		gl::color(Color("orangered"));
+	
+	if (dcel) {
+		for (DCEL::Halfedge const& h : dcel->halfedges)
+			drawHalfedge(h);
+		drawSolidFace(*cur->face);
+		gl::color(Color("red"));
 		gl::lineWidth(2.0f);
-		if (!pathfinder->path_points.empty()) {
-			for (int i = 0; i < pathfinder->path_points.size() - 1; ++i)
-			{
-				drawLine(pathfinder->path_points[i], pathfinder->path_points[i + 1]);
-				drawPoint(pathfinder->path_points[i],1.0f);
-			}
-		}
+		gl::drawVector({cur->prev->target->p.x,cur->prev->target->p.y,0.0},
+		{cur->target->p.x,cur->target->p.y,0.0}, 25.0,4.0f);
 	}
+	
 	{
 		gl::pushModelMatrix();
 		gl::scale(vec2{1,-1} / scaleFac);

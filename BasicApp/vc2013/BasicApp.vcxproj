@@ -103,7 +103,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\include;"C:\Cinder\include";"C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\PathSearch"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\DCEL;..\include;"C:\Cinder\include";"C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\PathSearch"</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;NOMINMAX;_WIN32_WINNT=0x0502;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -130,7 +130,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\include;"..\..\..\include"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\DCEL;..\include;"..\..\..\include"</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;NOMINMAX;_WIN32_WINNT=0x0502;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -186,7 +186,7 @@ xcopy /y "..\..\..\lib\msw\x86\d3dcompiler_46.dll" "$(OutDir)"</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\include;"C:\Cinder\include";"C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\PathSearch"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\DCEL;..\include;"C:\Cinder\include";"C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\PathSearch"</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;NOMINMAX;_WIN32_WINNT=0x0502;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader />
@@ -215,7 +215,7 @@ xcopy /y "..\..\..\lib\msw\x86\d3dcompiler_46.dll" "$(OutDir)"</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\include;"..\..\..\include"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\DCEL;..\include;"..\..\..\include"</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;NOMINMAX;_WIN32_WINNT=0x0502;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader />
@@ -243,7 +243,7 @@ xcopy /y "..\..\..\lib\msw\x86\d3dcompiler_46.dll" "$(OutDir)"</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_ANGLE|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\include;"..\..\..\include";"..\..\..\include\ANGLE"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\DCEL;..\include;"..\..\..\include";"..\..\..\include\ANGLE"</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>CINDER_GL_ANGLE;CINDER_GL_ES_3;WIN32;NDEBUG;_WINDOWS;NOMINMAX;_WIN32_WINNT=0x0502;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <Optimization>Disabled</Optimization>
@@ -272,6 +272,7 @@ xcopy /y "..\..\..\lib\msw\x86\d3dcompiler_46.dll" "$(OutDir)"</Command>
   <ItemGroup />
   <ItemGroup />
   <ItemGroup>
+    <ClCompile Include="..\..\DCEL\DCEL.cpp" />
     <ClCompile Include="..\..\PathSearch\geometry.cpp" />
     <ClCompile Include="..\..\PathSearch\Graph.cpp" />
     <ClCompile Include="..\..\PathSearch\Obstacles.cpp" />
