@@ -1,5 +1,7 @@
 #include "DCEL.h"
 #include "Point.h"
+#include <cassert>
+#include "geometry.h"
 
 DCEL::DCEL(Point p, Point q)
 {
@@ -175,4 +177,82 @@ void DCEL::split_edge(EdgeList::iterator cb, Point p)
 	b->halfedge = ba;
 	ag->prev = ba;
 	ce->prev = bc;
+}
+
+void DCEL::join_face(EdgeList::iterator h)
+{
+	auto g = h->twin;
+	auto f1 = h->face;
+	auto f2 = g->face;
+	
+	assert(f1 != f2);
+
+	f1->halfedge = h->next;
+	f2->halfedge = g->next;
+
+	h->next->prev = g->prev;
+	g->prev->next = h->next;
+
+	g->next->prev = h->prev;
+	h->prev->next = g->next;
+
+	h->target->halfedge = h->next;
+	g->target->halfedge = g->next;
+
+	auto i = g->next;
+	while (true) {
+		i->face = f1;
+		i = i->next;
+		if (i == h->next) break;
+	}
+	halfedges.erase(g);
+	halfedges.erase(h);
+	faces.erase(f2);
+}
+
+
+bool is_out_face(DCEL::FaceList::iterator f)
+{
+	auto h = f->halfedge;
+	auto i = h;
+
+	std::vector<Point> poly;
+
+	while (true) {
+		poly.push_back(i->target->p);
+		i = i->next;
+		if (i == h) break;
+	}
+	auto or = orientation(poly);
+	return or == PolyOrientation::CW;
+}
+
+DCEL mk_CCW_poly(std::vector<Point> const& poly)
+{
+	{
+		// precondition: poly is oriented 'CCW', poly.size() > 2
+		assert(poly.size() > 2);
+		assert(orientation(poly) == PolyOrientation::CCW);
+	}
+
+	DCEL d(poly[0], poly[1]);
+	auto v0 = std::next(d.vertices.begin());
+	assert(v0->p == poly[0]);
+
+	auto h = v0->halfedge;
+	for (auto point = poly.begin() + 2; point != poly.end(); ++point) {
+		d.add_vertex(*point, h);
+		h = h->next;
+	}
+	d.split_face(h, v0);
+
+	{
+		// postcondition: exactly two faces, one is CW, 
+		// poly.size() vertices, 2*poly.size() halfedges
+		assert(d.faces.size() == 2);
+		assert(is_out_face(d.faces.begin()));
+		assert(d.vertices.size() == poly.size());
+		assert(d.halfedges.size() == 2 * poly.size());
+	}
+	return d;
 }

@@ -154,9 +154,11 @@
     <ClCompile Include="..\PathSearch\Point.cpp" />
     <ClCompile Include="DCEL.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Delaunay.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DCEL.h" />
+    <ClInclude Include="Delaunay.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

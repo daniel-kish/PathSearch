@@ -140,6 +140,8 @@ enum class Position {
 };
 std::ostream& operator<< (std::ostream& os, Position const& p);
 
+Position insideTriangle(Point const& a, Point const& b, Point const& c, Point const& p);
+
 template <class Cont>
 Position insideTriangle(Cont const& pts, Triangle const& t, Point const& p)
 {

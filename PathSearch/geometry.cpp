@@ -408,3 +408,23 @@ bool insidePoly(std::vector<Point> const& poly, Point const& p)
 		intersections++;
 	return intersections % 2;
 }
+
+
+Position insideTriangle(Point const& a, Point const& b, Point const& c, Point const& p)
+{
+	auto s1 = side(a, b, p);
+	auto s2 = side(b, c, p);
+	auto s3 = side(c, a, p);
+	if (s1 == s2 && s1 == s3) // in
+		return Position::in;
+	else if (s1 == Side::coin) {
+		return Position::edge01;
+	}
+	else if (s2 == Side::coin) {
+		return Position::edge12;
+	}
+	else if (s3 == Side::coin) {
+		return Position::edge02;
+	}
+	return Position::out; // out
+}

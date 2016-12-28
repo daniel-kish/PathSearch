@@ -1,6 +1,7 @@
 #pragma once
 #include <list>
 #include "Point.h"
+#include <vector>
 
 struct DCEL {
 	struct Vertex;
@@ -45,4 +46,9 @@ struct DCEL {
 	void split_face(EdgeList::iterator h, VertexList::iterator v);
 
 	void split_edge(EdgeList::iterator h, Point p);
+
+	void join_face(EdgeList::iterator h);
 };
+
+bool is_out_face(DCEL::FaceList::iterator f);
+DCEL mk_CCW_poly(std::vector<Point> const& poly);

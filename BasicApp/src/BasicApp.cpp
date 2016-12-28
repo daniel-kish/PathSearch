@@ -7,38 +7,37 @@
 #include <cmath>
 #include "DCEL.h"
 #include <random>
+#include "geometry.h"
+#include "Delaunay.h"
 
 using namespace ci;
 using namespace ci::app;
 using namespace std::literals;
 
 
+
 class BasicApp : public App {
 public:
 	void setup() override
 	{
-		dcel = std::make_unique<DCEL>(Point{100,100}, Point{0,0});
+		std::vector<Point> poly = rectHull(Rect({500,300}, {-250,-150}), 50, 30);
+		
+		dcel = std::make_unique<DCEL>(mk_CCW_poly(poly));
+		auto poly_face = std::next(dcel->faces.begin());
+		dcel->out_face = dcel->faces.begin();
 
-		dcel->add_vertex({300,0}, dcel->halfedges.begin());
+		auto h = poly_face->halfedge;
+		while (true) 
+		{
+			auto rh = clip_ear(*dcel, h);
+			if (rh == h) break; // done
+			h = rh; // wrong ear or ok
+		}
+		
 
-		auto last = std::prev(dcel->halfedges.end());
-
-		dcel->split_face(last, dcel->vertices.begin());
-		dcel->split_edge(last, {50,50});
-
-		last = last->next;
-		Point const& a = last->target->p;
-		Point const& b = last->next->target->p;
-		Point const& c = last->next->next->target->p;
-		Point center = (a + b + c)*0.33333f;
-		dcel->add_vertex(center, last);
-		auto v = last->next->target;
-		dcel->split_face(last->prev->prev, v);
-
-		last = last->next->twin->next;
-
-		dcel->split_face(last, v);
 		cur = dcel->halfedges.begin();
+		msg = (localDelaunay(*dcel, cur) ? "good" : "no");
+		
 		auto src = DataSourcePath::create(
 			R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\BasicApp\fonts\Consolas.ttf)"
 		);
@@ -75,16 +74,13 @@ private:
 		Point const& target = h.target->p;
 		Point const& source = h.prev->target->p;
 		Point mid = (source + target)*0.5;
-		setHalfedgeColor(h.i);
+		//setHalfedgeColor(h.i);
 		gl::lineWidth(2.0f);
 		drawLine(target, mid);
 		gl::color(Color("black"));
 		drawPoint(target,3.0f);
 	}
-	void drawArrow(Point const& p, Point const& q)
-	{
 
-	}
 	Point facecenter(DCEL::Face const& f)
 	{
 		auto h = f.halfedge;
@@ -166,6 +162,11 @@ void BasicApp::keyDown(KeyEvent event)
 		cur = cur->prev;
 	if (event.getCode() == 't')
 		cur = cur->twin;
+	if (event.getCode() == 'f') {
+		toDelaunay(*dcel);
+		cur = dcel->halfedges.begin();
+	}
+	//msg = (localDelaunay(*dcel, cur) ? "good" : "no");
 }
 
 void BasicApp::draw()

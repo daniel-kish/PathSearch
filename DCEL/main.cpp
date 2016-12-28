@@ -5,57 +5,56 @@
 #include "geometry.h"
 #include <cassert>
 #include "DCEL.h"
+#include "Delaunay.h"
+#include <set>
 
-
-bool is_out_face(DCEL::FaceList::iterator f)
-{
-	auto h = f->halfedge;
-	auto i = h;
-
-	std::vector<Point> poly;
-
-	while (true) {
-		poly.push_back(i->target->p);
-		i = i->next;
-		if (i == h) break;
-	}
-	auto or = orientation(poly);
-	return or == PolyOrientation::CW;
-}
-
-DCEL mk_CCW_poly(std::vector<Point> const& poly)
-{
-	{
-		// precondition: poly is oriented 'CCW', poly.size() > 2
-		assert(poly.size() > 2);
-		assert(orientation(poly) == PolyOrientation::CCW);
-	}
-
-	DCEL d(poly[0], poly[1]);
-	auto v0 = std::next(d.vertices.begin());
-	assert(v0->p == poly[0]);
-
-	auto h = v0->halfedge;
-	for (auto point = poly.begin() + 2; point != poly.end(); ++point) {
-		d.add_vertex(*point, h);
-		h = h->next;
-	}
-	d.split_face(h, v0);
-
-	{
-		// postcondition: exactly two faces, one is CW, 
-		// poly.size() vertices, 2*poly.size() halfedges
-		assert(d.faces.size() == 2);
-		assert(is_out_face(d.faces.begin()));
-		assert(d.vertices.size() == poly.size());
-		assert(d.halfedges.size() == 2 * poly.size());
-	}
-	return d;
-}
 
 int main()
 {
-	std::vector<Point> poly{{0,0},{4,1},{4,3},{2,5},{-2,3}};
+	std::vector<Point> poly = rectHull(Rect({500,300}, {-250,-150}), 20, 10);
 	DCEL d = mk_CCW_poly(poly);
+	auto poly_face = std::next(d.faces.begin());
+	d.out_face = d.faces.begin();
+	
+	auto h = poly_face->halfedge;
+	while (true)
+	{
+		auto rh = clip_ear(d, h);
+		if (rh == h) break; // done
+		h = rh; // wrong ear or ok
+	}
 
+	//toDelaunay(d);
+
+
+	auto comp = [](DCEL::EdgeList::iterator h, DCEL::EdgeList::iterator g) {
+		if (h->twin == g)
+			return false;
+		return h->i < g->i;
+	};
+	std::set<DCEL::EdgeList::iterator, decltype(comp)> s(comp);
+
+
+	while (true)
+	{
+		s.clear();
+		for (auto h = d.halfedges.begin(); h != d.halfedges.end(); ++h) {
+			if (!localDelaunay(d, h))
+				s.insert(h);
+		}
+		bool more = false;
+		for (DCEL::EdgeList::iterator h : s)
+		{
+			h = flip(d, h);
+			if (localDelaunay(d, h))
+			{
+				more = true;
+				break;
+			}
+		}
+		if (!more) break;
+		std::cout << "here\n";
+	}
+	std::cout << "done\n";
+	//d.print();
 }
