@@ -27,38 +27,17 @@ bool insideRect(Rect const& r, Point const& p)
 	return p.x > leftBot.x && p.x < rightTop.x && p.y > leftBot.y && p.y < rightTop.y;
 }
 
-std::vector<Poly> readPoly(std::ifstream& input)
-{
-	std::vector<std::vector<Point>> polys;
-
-	while (!input.eof())
-	{
-		Poly poly;
-		double x, y;
-		int sz{0};
-		input >> sz;
-		poly.reserve(sz);
-
-		while (sz--) {
-			input >> x >> y;
-			poly.push_back({x,y});
-		}
-		if (!poly.empty()) polys.push_back(poly);
-	}
-	return polys;
-}
-
 class BasicApp : public App {
 public:
 	void setup() override
 	{
-		r = Rect({500.0,300.0}, {-250.0,-150.0});
+		r = Rect({200,100});
 
-		grower = std::make_unique<ObstacleGrower>(r, 50, 30, 0.7f);
-		grower->max_tree_lvl *= 1.5;
+		//grower = std::make_unique<ObstacleGrower>(r, 50, 30, 0.7f);
+		//grower->max_tree_lvl *= 1.5;
 		auto src = DataSourcePath::create(
 			R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\BasicApp\fonts\Consolas.ttf)"
-		);
+		); 
 		font = ci::Font(src, 18.f);
 		graphEdgesCol = Color("slategray");
 		graphVerticesCol = Color("white");
@@ -75,7 +54,7 @@ public:
 	void draw() override;
 private:
 	vec2 toVec2(Point const& p) { return{float(p.x), float(p.y)}; }
-	void drawGrowerTrian()
+	/*void drawGrowerTrian()
 	{
 		std::vector<Point> const& pts = grower->points();
 		gl::lineWidth(2.0f);
@@ -89,7 +68,7 @@ private:
 			gl::vertex(toVec2(pts[n.triangle[0]]));
 			gl::end();
 		}
-	}
+	}*/
 	void drawObstacle()
 	{
 		gl::lineWidth(2.0f);
@@ -111,7 +90,7 @@ private:
 			gl::end();
 		}
 	}
-	void drawGrowerSets()
+	/*void drawGrowerSets()
 	{
 		gl::color(Color("darkslategray"));
 		for (NodeSet& set : grower->sets)
@@ -123,7 +102,7 @@ private:
 				gl::drawSolidTriangle(tri);
 			}
 		}
-	}
+	}*/
 
 	std::vector<MLine> voronoiLines;
 	void mkVoronoi()
@@ -154,14 +133,14 @@ private:
 	vec2 a, b, c, d;
 
 	void drawPoint(Point const& p, float rad = 1.5f) {
-		gl::drawSolidCircle(toVec2(p), rad);
+		gl::drawSolidCircle(toVec2(p), rad/scaleFac);
 	}
 	void drawLine(Point& p, Point& q)
 	{
 		gl::drawLine(toVec2(p), toVec2(q));
 	}
 	
-	std::unique_ptr<ObstacleGrower> grower;
+	//std::unique_ptr<ObstacleGrower> grower;
 
 	std::vector<std::vector<Point>> polys;
 
@@ -225,25 +204,17 @@ void BasicApp::mouseDown(MouseEvent event)
 
 void BasicApp::keyDown(KeyEvent event)
 {
-	if (event.getCode() == 'o') {
-		grower->clear();
-		grower->probability_balance = 0.5;
-		int n = 30;
-		while (n--)
-			grower->growObstacle();
-		/*int trlvl = grower->max_tree_lvl;
-		grower->max_tree_lvl *= 4.0;
-		n = grower->sets.size();
-		while (grower->sets.size() == n)
-			grower->growObstacle();
-		grower->max_tree_lvl = trlvl;*/
+	/*if (event.getCode() == 'o') {
+		grower->growObstacle();
+		std::ostringstream os; os << grower->density();
+		msg = os.str();
 		
 		polys.clear();
 		for (int i = 0; i < grower->sets.size(); ++i)
 			polys.push_back(grower->getPoly(i));
-	}
+	}*/
 	if (event.getCode() == 'w') {
-		std::ofstream os(
+		/*std::ofstream os(
 		R"(C:\Users\Daniel\Documents\visual studio 2015\Projects\PathSearch\poly2.dat)"
 		);
 		for (Poly& poly : polys)
@@ -252,11 +223,15 @@ void BasicApp::keyDown(KeyEvent event)
 			for (Point& p : poly)
 				os << p.x << ' ' << p.y << '\n';
 			os << '\n';
-		}
+		}*/
+		std::ofstream os(
+			R"(C:\Users\Daniel\Documents\visual studio 2015\Projects\PathSearch\poly2.dat)"
+		);
+		writePoly(os, polys);
 	}
 	if (event.getCode() == 'r') {
 		std::ifstream is(
-			R"(C:\Users\Daniel\Documents\visual studio 2015\Projects\PathSearch\poly1.dat)"
+			R"(C:\Users\Daniel\Documents\visual studio 2015\Projects\PathSearch\Release\file.txt)"
 		);
 		polys = readPoly(is);
 	}

@@ -3,6 +3,7 @@
 #include "Tree.h"
 #include "triangulation.h"
 #include <map>
+#include <fstream>
 
 
 ObstacleGrower::ObstacleGrower(Rect r_, int nx_, int ny_, float inner_to_hull_pts_ratio_)
@@ -103,6 +104,19 @@ void ObstacleGrower::clear()
 	sets.clear();
 	boundaries.clear();
 	edge_lists.clear();
+}
+
+int ObstacleGrower::num_obstacles()
+{
+	return sets.size();
+}
+
+float ObstacleGrower::density()
+{
+	std::size_t s = 0;
+	for (auto const& set : sets)
+		s += set.size();
+	return float(s) / g.nodes.size();
 }
 
 NodeSet boundary(NodeSet& obs)
@@ -240,4 +254,36 @@ std::vector<int> edgesToPoly(std::vector<Edge>& v)
 		poly.push_back(s[0]);
 	}
 	return poly;
+}
+
+std::vector<Poly> readPoly(std::ifstream& input)
+{
+	std::vector<std::vector<Point>> polys;
+
+	while (!input.eof())
+	{
+		Poly poly;
+		double x, y;
+		int sz{0};
+		input >> sz;
+		poly.reserve(sz);
+
+		while (sz--) {
+			input >> x >> y;
+			poly.push_back({x,y});
+		}
+		if (!poly.empty()) polys.push_back(poly);
+	}
+	return polys;
+}
+
+void writePoly(std::ofstream& os, std::vector<Poly>const& polys)
+{
+	for (Poly const& poly : polys)
+	{
+		os << poly.size() << '\n';
+		for (Point const& p : poly)
+			os << p.x << ' ' << p.y << '\n';
+		os << '\n';
+	}
 }

@@ -1,38 +1,75 @@
 #include <iostream>
-#include "Point.h"
-#include "Graph.h"
-#include "geometry.h"
-#include "triangulation.h"
-#include <deque>
-#include <set>
-#include "Search.h"
-#include <random>
-#include <functional>
-#include <chrono>
-#include "PathFinding.h"
+#include "Obstacles.h"
+#include <fstream>
 
-int main()
-{
+int main(int argc, char** argv)
+try{
 	using namespace std;
 	using namespace std::literals;
 	using Node = Graph::Node;
+	
+	if (argc < 6) {
+		std::cerr << "generator: usage: W H Nx Ny file\n";
+		std::exit(1);
+	}
 
-	vector<Point> pts{{5,1.5},{5.5,4},{3.5,6.5},{1,5.5},{1,1},
-	{3,0.5},{4,4},{3,5},{2,4},{3.5,2},{3,3},{3,1.5},{0,0},{0,0},{2,2}};
+	double wid = std::stod(std::string{argv[1]});
+	if (wid < 0.0) {
+		std::cerr << "generator: error: W < 0\n";
+		std::exit(1);
+	}
+	double height = std::stod(std::string{argv[2]});
+	if (height < 0.0) {
+		std::cerr << "generator: error: H < 0\n";
+		std::exit(1);
+	}
 
-	vector<Edge> v{{0,1},{1,2},{2,3},{3,4},{4,5},{5,0}};
-	std::random_device rd;
-	std::shuffle(begin(v), end(v), std::mt19937{rd()});
+	Rect r({wid,height});
 
-	auto rng = find_max_path(v);
+	int nx = std::stoi(std::string{argv[3]});
+	if (nx < 0) {
+		std::cerr << "generator: error: Nx < 0\n";
+		std::exit(1);
+	}
+	int ny = std::stoi(std::string{argv[4]});
+	if (ny < 0) {
+		std::cerr << "generator: error: Ny < 0\n";
+		std::exit(1);
+	}
 
-	std::vector<Edge> range(rng.first, rng.second);
+	std::ofstream os(argv[5]);
+	if (!os.is_open()) {
+		std::cerr << "generator: error: can't open file: " << argv[5] << '\n';
+		std::exit(1);
+	}
 
-	auto poly = edgesToPoly(range);
+	ObstacleGrower grower(r, nx, ny, 0.7f);
+	
+	std::cout << "current max_tree_lvl: " << grower.max_tree_lvl << '\n';
+	std::cout << "current probability balance: " << grower.probability_balance << '\n';
 
-	for (int i : poly) cout << i << ' '; cout << '\n';
-
-	std::vector<Point> polyPts = polygonPts(pts, poly);
-	for (Point const& p : polyPts) cout << p << ' '; cout << '\n';
-	cout << "orient " << orientation(polyPts) << '\n';
+	while (true) {
+		char c;
+		std::cin >> c;
+		if (c == 'e') // enough
+		{
+			std::vector<Poly> polys;
+			for (int i = 0; i < grower.sets.size(); ++i)
+				polys.push_back(grower.getPoly(i));
+			writePoly(os, polys);
+			return 0;
+		}
+		else if (c == 'c') {
+			int lvl; float prob;
+			std::cin >> lvl >> prob;
+			grower.max_tree_lvl = lvl;
+			grower.probability_balance = prob;
+		}
+		grower.growObstacle();
+		std::cout << grower.density() << '\n';
+	}
+}
+catch (FlipError const& fe)
+{
+	std::cerr << "Something went wrong. Try changing the parameters slightly\n";
 }

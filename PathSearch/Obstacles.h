@@ -27,6 +27,8 @@ public:
 	void growObstacle();
 	std::vector<Point> getPoly(int i);
 	void clear();
+	int num_obstacles();
+	float density();
 };
 
 NodeSet boundary(NodeSet& obs);
@@ -38,3 +40,5 @@ using iter = typename std::vector<T>::iterator;
 iter<Edge> connect_first(iter<Edge> p, iter<Edge> e);
 std::pair<iter<Edge>, iter<Edge>> find_max_path(std::vector<Edge>& v);
 std::vector<int> edgesToPoly(std::vector<Edge>& v);
+std::vector<Poly> readPoly(std::ifstream& input);
+void writePoly(std::ofstream& os, std::vector<Poly>const& polys);
