@@ -9,16 +9,16 @@ try{
 	using Node = Graph::Node;
 	
 	if (argc < 6) {
-		std::cerr << "generator: usage: W H Nx Ny file\n";
+		std::cerr << "generator: usage: 'gen' W H Nx Ny file\n";
 		std::exit(1);
 	}
 
-	double wid = std::stod(std::string{argv[1]});
+	double wid = std::stod(argv[1]);
 	if (wid < 0.0) {
 		std::cerr << "generator: error: W < 0\n";
 		std::exit(1);
 	}
-	double height = std::stod(std::string{argv[2]});
+	double height = std::stod(argv[2]);
 	if (height < 0.0) {
 		std::cerr << "generator: error: H < 0\n";
 		std::exit(1);
@@ -26,12 +26,12 @@ try{
 
 	Rect r({wid,height});
 
-	int nx = std::stoi(std::string{argv[3]});
+	int nx = std::stoi(argv[3]);
 	if (nx < 0) {
 		std::cerr << "generator: error: Nx < 0\n";
 		std::exit(1);
 	}
-	int ny = std::stoi(std::string{argv[4]});
+	int ny = std::stoi(argv[4]);
 	if (ny < 0) {
 		std::cerr << "generator: error: Ny < 0\n";
 		std::exit(1);
@@ -69,7 +69,7 @@ try{
 		std::cout << grower.density() << '\n';
 	}
 }
-catch (FlipError const& fe)
+catch (...)
 {
 	std::cerr << "Something went wrong. Try changing the parameters slightly\n";
 }
