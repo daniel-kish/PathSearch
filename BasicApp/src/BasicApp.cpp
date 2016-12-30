@@ -14,29 +14,40 @@ using namespace ci;
 using namespace ci::app;
 using namespace std::literals;
 
+std::vector<Poly> readPoly(std::ifstream& input)
+{
+	std::vector<std::vector<Point>> polys;
+
+	while (!input.eof())
+	{
+		Poly poly;
+		double x, y;
+		int sz{0};
+		input >> sz;
+		poly.reserve(sz);
+
+		while (sz--) {
+			input >> x >> y;
+			poly.push_back({x,y});
+		}
+		if (!poly.empty()) polys.push_back(poly);
+	}
+	return polys;
+}
 
 
 class BasicApp : public App {
 public:
 	void setup() override
 	{
-		std::vector<Point> poly = rectHull(Rect({500,300}, {-250,-150}), 50, 30);
+		std::ifstream is(R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\poly1.dat)");
+		std::vector<Point> poly = readPoly(is)[8];
 		
 		dcel = std::make_unique<DCEL>(mk_CCW_poly(poly));
 		auto poly_face = std::next(dcel->faces.begin());
 		dcel->out_face = dcel->faces.begin();
 
-		auto h = poly_face->halfedge;
-		while (true) 
-		{
-			auto rh = clip_ear(*dcel, h);
-			if (rh == h) break; // done
-			h = rh; // wrong ear or ok
-		}
-		
-
 		cur = dcel->halfedges.begin();
-		msg = (localDelaunay(*dcel, cur) ? "good" : "no");
 		
 		auto src = DataSourcePath::create(
 			R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\BasicApp\fonts\Consolas.ttf)"
@@ -162,11 +173,16 @@ void BasicApp::keyDown(KeyEvent event)
 		cur = cur->prev;
 	if (event.getCode() == 't')
 		cur = cur->twin;
-	if (event.getCode() == 'f') {
-		toDelaunay(*dcel);
-		cur = dcel->halfedges.begin();
+	if (event.getCode() == 'c') {
+		cur = clip_delaunay_ear(*dcel, cur);
 	}
-	//msg = (localDelaunay(*dcel, cur) ? "good" : "no");
+	if (event.getCode() == 'f') {
+		cur = flip(*dcel, cur);
+	}
+	if (event.getCode() == 'd') {
+		polygon_delaunay_triangulation(*dcel, cur->face);
+	}
+	//msg = localDelaunay(*dcel, cur)? "yes":"no";
 }
 
 void BasicApp::draw()

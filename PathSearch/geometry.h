@@ -177,3 +177,8 @@ PolyOrientation orientation(std::vector<Point> const& poly);
 std::vector<Point> polygonPts(std::vector<Point> const& pts, std::vector<int> poly);
 
 bool insidePoly(std::vector<Point> const& poly, Point const& p);
+
+bool inCircle(Circle const& c, Point const& p);
+Circle circumCircle(Point const& a, Point const& b, Point const& c);
+Point circumCenter(Point const& a, Point const& b, Point const& c);
+double circumRadius(Point const& p1, Point const& p2, Point const& p3);

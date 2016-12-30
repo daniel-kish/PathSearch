@@ -30,10 +30,43 @@ DCEL::EdgeList::iterator clip_ear(DCEL& d, DCEL::EdgeList::iterator h)
 
 DCEL::EdgeList::iterator clip_delaunay_ear(DCEL& d, DCEL::EdgeList::iterator h)
 {
-	// preconditions: at least two faces should already be built
+	// preconditions: at least two faces should already be present
 	assert(d.faces.size() > 1);
 	assert(h->face != d.out_face);
+	if (h->next->next->next == h) return h;
+
+	auto a = h->prev->target;
+	auto b = h->target;
+	auto c = h->next->target;
+
+	if (side(a->p, c->p, b->p) != Side::right)
+		return h->next;
+
+	Circle circle = circumCircle(a->p, b->p, c->p);
+	auto i = h->next->next;
+	do {
+		if (inCircle(circle, i->target->p))
+			return h->next;
+		i = i->next;
+	} while (i != h->prev);
+
+	d.split_face(h->next, a);
+	return h->prev->twin;
 }
+
+void polygon_delaunay_triangulation(DCEL& d, DCEL::FaceList::iterator in_face)
+{
+	assert(d.faces.size() > 1);
+	assert(in_face != d.out_face);
+
+	auto h = in_face->halfedge;
+	DCEL::EdgeList::iterator rh{h};
+	do {
+		h = rh;
+		rh = clip_delaunay_ear(d,h);
+	} while (rh != h);
+}
+
 
 bool localDelaunay(DCEL& dcel, DCEL::EdgeList::iterator h)
 {

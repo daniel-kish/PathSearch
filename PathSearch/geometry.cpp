@@ -8,7 +8,7 @@
 using Triangle = Simplex<3>;
 using Edge = Simplex<2>;
 
-double doubleEps = 1.0e-6;
+double doubleEps = 1.0e-10;
 
 bool zero(double val) { return std::abs(val) < doubleEps; }
 bool close(double v, double u)
@@ -314,6 +314,41 @@ Side side(Point const& a, Point const& b, Point const& c)
 		return Side::left;
 	else
 		return Side::right;
+}
+
+double circumRadius(Point const& p1, Point const& p2, Point const& p3)
+{
+	double a = norm(p1 - p2);
+	double b = norm(p2 - p3);
+	double c = norm(p3 - p1);
+
+	double d = a*b*c / sqrt((a + b + c)*(-a + b + c)*(a - b + c)*(a + b - c));
+	return d;
+}
+
+Point circumCenter(Point const& a, Point const& b, Point const& c)
+{
+	double x = sqNorm(a)*(b.y - c.y) + sqNorm(b)*(c.y - a.y) + sqNorm(c)*(a.y - b.y);
+	double y = sqNorm(a)*(c.x - b.x) + sqNorm(b)*(a.x - c.x) + sqNorm(c)*(b.x - a.x);
+	double D = 2.0f * (a.x*(b.y - c.y) + b.x*(c.y - a.y) + c.x*(a.y - b.y));
+
+	return Point{x / D, y / D};
+}
+
+Circle circumCircle(Point const& a, Point const& b, Point const& c)
+{
+	return Circle{circumCenter(a,b,c), circumRadius(a,b,c)};
+}
+
+bool inCircle(Circle const& c, Point const& p)
+{
+	double d = dist(c.center, p);
+	if (zero(std::abs(d - c.rad)))
+		return false;
+	else if (d < c.rad)
+		return true;
+	else
+		return false;
 }
 
 Point circumCenter(std::vector<Point> const& v, Triangle const& t)
