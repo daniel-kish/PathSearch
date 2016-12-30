@@ -4,13 +4,6 @@
 #include "Graph.h"
 #include <random>
 
-//struct TreeNode {
-//	Graph::Node::Ref node;
-//	std::set<TreeNode>::iterator par;
-//};
-//
-//bool operator<(TreeNode const& p, TreeNode const& q);
-
 class BFSTree
 {
 public:

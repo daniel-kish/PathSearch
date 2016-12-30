@@ -28,13 +28,17 @@ DCEL::EdgeList::iterator clip_ear(DCEL& d, DCEL::EdgeList::iterator h)
 	return h->next->next->twin;
 }
 
+DCEL::EdgeList::iterator clip_delaunay_ear(DCEL& d, DCEL::EdgeList::iterator h)
+{
+	// preconditions: at least two faces should already be built
+	assert(d.faces.size() > 1);
+	assert(h->face != d.out_face);
+}
+
 bool localDelaunay(DCEL& dcel, DCEL::EdgeList::iterator h)
 {
 	// preconditions:
-	//assert(h->face != dcel.out_face && h->twin->face != dcel.out_face);
-
-	if (h->face == dcel.out_face && h->twin->face == dcel.out_face)
-		return true;
+	assert(h->face != dcel.out_face && h->twin->face != dcel.out_face);
 
 	auto g = h->twin;
 	auto a = h->next->target;
@@ -64,78 +68,6 @@ DCEL::EdgeList::iterator flip(DCEL& d, DCEL::EdgeList::iterator h)
 	return g->next;
 }
 
-bool nonstrict_global(DCEL& d)
-{
-	for (auto h = d.halfedges.begin(); h != d.halfedges.end();)
-	{
-		if (h->face == d.out_face || h->twin->face == d.out_face) {
-			++h;
-			continue;
-		}
-		if (!localDelaunay(d, h)) {
-			auto next = h->next;
-			h = flip(d, h);
-			if (localDelaunay(d, h))
-				return false;
-			h = next;
-		}
-		else
-			++h;
-	}
-}
-
-void toDelaunay(DCEL& d)
-{
-	/*bool more = false;
-	do
-	{
-		more = false;
-		for (auto h = d.halfedges.begin(); h != d.halfedges.end();)
-		{
-			if (h->face == d.out_face || h->twin->face == d.out_face) {
-				++h;
-				continue;
-			}
-			if (!localDelaunay(d, h)) {
-				auto next = h->next;
-				h = flip(d, h);
-				if (localDelaunay(d, h)) 
-					more = true;
-				h = next;
-			}
-			else
-				++h;
-		}
-	} while (more);*/
-	auto comp = [](DCEL::EdgeList::iterator h, DCEL::EdgeList::iterator g) {
-		if (h->twin == g)
-			return false;
-		return h->i < g->i;
-	};
-	std::set<DCEL::EdgeList::iterator, decltype(comp)> s(comp);
-
-
-	while (true)
-	{
-		s.clear();
-		for (auto h = d.halfedges.begin(); h != d.halfedges.end(); ++h) {
-			if (!localDelaunay(d, h))
-				s.insert(h);
-		}
-		bool more = false;
-		for (DCEL::EdgeList::iterator h : s)
-		{
-			h = flip(d, h);
-			if (localDelaunay(d, h)) {
-				more = true;
-				break;
-			}
-		}
-		if (!more) break;
-		//std::cout << "here\n";
-	}
-	//std::cout << "done\n";
-}
 
 
 
