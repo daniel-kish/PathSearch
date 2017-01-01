@@ -3,8 +3,7 @@
 #include <cmath>
 #include <cassert>
 #include <random>
-#include <deque>
-#include <set>
+#include <queue>
 
 DCEL::EdgeList::iterator clip_ear(DCEL& d, DCEL::EdgeList::iterator h)
 {
@@ -98,11 +97,105 @@ DCEL::EdgeList::iterator flip(DCEL& d, DCEL::EdgeList::iterator h)
 	auto v = h->twin->next->target;
 	d.join_face(h);
 	d.split_face(g, v);
-	return g->next;
+	return g->next->twin;
 }
 
+// {h,true} if inside
+std::tuple<DCEL::EdgeList::iterator,bool> 
+localize(DCEL& d, Point const& p)
+{
+	for (auto f = d.faces.begin(); f != d.faces.end(); ++f)
+	{
+		if (f == d.out_face) continue;
+		auto h = f->halfedge;
+		Point const& a = h->prev->target->p;
+		Point const& b = h->target->p;
+		Point const& c = h->next->target->p;
+		
+		Point closest;  TriPos pos;
+		std::tie(closest,pos) = ClosestPointOnTriangle(p,a,b,c);
 
+		if (!zero(dist(closest, p))) 
+			continue;
+		// otherwise
+		switch (pos)
+		{
+		case TriPos::V0:
+		case TriPos::V1:
+		case TriPos::V2: 
+			return {d.halfedges.end(),false}; // ignore existing point
+		case TriPos::edge01: return {h,false};
+		case TriPos::edge12: return{h->next,false};
+		case TriPos::edge20: return{h->prev,false};
+		case TriPos::inside: return {h,true};
+		}
+	}
+	// if 'p' is an outer point - ignore it
+	return {d.halfedges.end(),false};
+}
 
+void insert_point_inside(DCEL& d, DCEL::EdgeList::iterator h, Point const& p)
+{
+	d.add_vertex(p, h);
+	auto g = h->next;
+	d.split_face(g,h->prev->target);
+	g = g->next->twin;
+	d.split_face(g, g->prev->prev->target);
+}
+
+void insert_point_on_edge(DCEL& d, DCEL::EdgeList::iterator h, Point const& p)
+{
+	d.split_edge(h, p);
+	d.split_face(h, h->prev->prev->target);
+	if (h->twin->face != d.out_face)
+		d.split_face(h->twin->prev, h->twin->next->target);
+}
+
+void insert_point(DCEL& d, Point const& p)
+{
+	DCEL::EdgeList::iterator h; bool inside;
+	std::tie(h,inside) = localize(d, p);
+	if (h == d.halfedges.end()) return;
+
+	std::queue<DCEL::EdgeList::iterator> q;
+	if (inside) {
+		insert_point_inside(d, h, p);
+		q.push(h);
+		h = h->next->twin->next;
+		q.push(h);
+		h = h->next->twin->next;
+		q.push(h);
+	}
+	else {
+		insert_point_on_edge(d, h, p);
+		h = h->prev;
+		q.push(h);
+
+		if (h->next->twin->face != d.out_face) {
+			h = h->next->twin->next;
+			q.push(h);
+			h = h->next->twin->next;
+			q.push(h);
+			h = h->next->twin->next;
+			q.push(h);
+		}
+		else {
+			h = h->prev->twin->prev;
+			q.push(h);
+		}
+	}
+	while (!q.empty())
+	{
+		auto h = q.front(); q.pop();
+		if (h->twin->face == d.out_face) continue;
+		if (!localDelaunay(d, h))
+		{
+			h = flip(d, h);
+			q.push(h->prev);
+			q.push(h->twin->next);
+		}
+	}
+}
 
 std::vector<Point> rectHull(Rect r, int x_pts, int y_pts)
 {
@@ -155,5 +248,20 @@ std::vector<Point> rectInsidesRand(Rect r, int n_pts)
 
 	while (n_pts--)
 		pts.push_back({xd(mt),yd(mt)});
+	return pts;
+}
+
+std::vector<Point> circleHull(Circle c, int nsteps)
+{
+	double step = 2.0*M_PI / nsteps;
+	std::vector<Point> pts; pts.reserve(nsteps);
+
+	for (double phi = 0.0; phi < 2.0*M_PI; phi += step)
+		pts.push_back( {c.rad*cos(phi), c.rad*sin(phi)} );
+	
+	if (zero(dist(pts.back(), pts.front())))
+		pts.pop_back();
+	pts.shrink_to_fit();
+	
 	return pts;
 }

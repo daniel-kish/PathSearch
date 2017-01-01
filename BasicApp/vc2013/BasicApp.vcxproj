@@ -274,6 +274,7 @@ xcopy /y "..\..\..\lib\msw\x86\d3dcompiler_46.dll" "$(OutDir)"</Command>
   <ItemGroup>
     <ClCompile Include="..\..\DCEL\DCEL.cpp" />
     <ClCompile Include="..\..\DCEL\Delaunay.cpp" />
+    <ClCompile Include="..\..\DCEL\Localization.cpp" />
     <ClCompile Include="..\..\PathSearch\geometry.cpp" />
     <ClCompile Include="..\..\PathSearch\Point.cpp" />
     <ClCompile Include="..\src\BasicApp.cpp" />

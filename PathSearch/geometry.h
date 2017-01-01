@@ -6,9 +6,10 @@
 #include <exception>
 #include <vector>
 
-extern double doubleEps;
+extern const double doubleEps;
 bool zero(double val);
 bool close(double v, double u);
+bool close(Point const& p, Point const& q);
 
 struct Line {
 	Point a, b;

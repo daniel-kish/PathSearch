@@ -9,6 +9,7 @@
 #include <random>
 #include "geometry.h"
 #include "Delaunay.h"
+#include "Localization.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -40,15 +41,19 @@ class BasicApp : public App {
 public:
 	void setup() override
 	{
-		std::ifstream is(R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\poly1.dat)");
-		std::vector<Point> poly = readPoly(is)[8];
-		
+		//std::ifstream is(R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\poly1.dat)");
+		//std::vector<Point> poly = readPoly(is)[8];
+		//std::vector<Point> poly = circleHull(Circle{{0,0},100}, 10);
+		std::vector<Point> poly = rectHull(Rect{{500,300},{-250,-150}}, 50, 30);
+
 		dcel = std::make_unique<DCEL>(mk_CCW_poly(poly));
 		auto poly_face = std::next(dcel->faces.begin());
 		dcel->out_face = dcel->faces.begin();
-
 		cur = dcel->halfedges.begin();
-		
+		//polygon_delaunay_triangulation(*dcel, poly_face);
+
+		found = cur;
+
 		auto src = DataSourcePath::create(
 			R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\BasicApp\fonts\Consolas.ttf)"
 		);
@@ -63,16 +68,6 @@ public:
 	void draw() override;
 private:
 	vec2 toVec2(Point const& p) { return{float(p.x), float(p.y)}; }
-	
-
-	void setHalfedgeColor(int i)
-	{
-		std::mt19937 mt(i);
-		std::uniform_real_distribution<float> d(0.0f, 1.0f);
-		int max = dcel->halfedges.size()+1;
-		float f = float(i) / float(max);
-		gl::color(d(mt), d(mt), d(mt));
-	}
 	void drawPoint(Point const& p, float rad = 1.5f) {
 		gl::drawSolidCircle(toVec2(p), rad/scaleFac, 20);
 	}
@@ -123,13 +118,27 @@ private:
 		gl::color(0.5f, 0.5f, 0.5f, 0.5f);
 		gl::drawSolid(pl);
 	}
-	void drawFace(DCEL::Face const& f)
+	void drawSolidFace(DCEL::Face const& f, Color const& col)
 	{
-		std::ostringstream os; os << 'f' << f.i;
-		gl::drawString(os.str(), toVec2(facecenter(f)), Color("black"), font);
+		auto h = f.halfedge;
+		auto i = h;
+
+		ci::PolyLine2 pl;
+
+		while (true)
+		{
+			pl.push_back(toVec2(i->target->p));
+			i = i->next;
+			if (i == h) break;
+		}
+		gl::color(col);
+		gl::drawSolid(pl);
 	}
+
 	std::unique_ptr<DCEL> dcel;
 	DCEL::EdgeList::iterator cur;
+
+	DCEL::EdgeList::iterator found;
 
 	Point mousePos;
 	int height, wid;
@@ -149,6 +158,9 @@ void BasicApp::mouseMove(MouseEvent event)
 	mousePos = mousePos - Point{wid*0.5f, height*0.5f};
 	mousePos.y *= -1.0;
 	mousePos = mousePos * (1.0 / scaleFac);
+
+	bool b;
+	std::tie(found,b) = localize(*dcel, mousePos);
 }
 
 void BasicApp::mouseWheel(MouseEvent event)
@@ -163,6 +175,7 @@ void BasicApp::mouseWheel(MouseEvent event)
 
 void BasicApp::mouseDown(MouseEvent event)
 {
+	insert_point(*dcel, mousePos);
 }
 
 void BasicApp::keyDown(KeyEvent event)
@@ -176,13 +189,17 @@ void BasicApp::keyDown(KeyEvent event)
 	if (event.getCode() == 'c') {
 		cur = clip_delaunay_ear(*dcel, cur);
 	}
+	if (event.getCode() == 'a') {
+		Point mid = (cur->target->p + cur->prev->target->p)*0.5;
+		insert_point(*dcel, mid);
+		cur = dcel->halfedges.begin();
+	}
 	if (event.getCode() == 'f') {
 		cur = flip(*dcel, cur);
 	}
 	if (event.getCode() == 'd') {
 		polygon_delaunay_triangulation(*dcel, cur->face);
 	}
-	//msg = localDelaunay(*dcel, cur)? "yes":"no";
 }
 
 void BasicApp::draw()
@@ -207,7 +224,9 @@ void BasicApp::draw()
 		gl::drawVector({cur->prev->target->p.x,cur->prev->target->p.y,0.0},
 		{cur->target->p.x,cur->target->p.y,0.0}, 25.0,4.0f);
 	}
-	
+	drawPoint(mousePos, 2.5f);
+	if (found != dcel->halfedges.end())
+		drawSolidFace(*found->face, Color("green"));
 	{
 		gl::pushModelMatrix();
 		gl::scale(vec2{1,-1} / scaleFac);

@@ -8,12 +8,18 @@
 using Triangle = Simplex<3>;
 using Edge = Simplex<2>;
 
-double doubleEps = 1.0e-10;
+const double doubleEps = 1.0e-2;
 
 bool zero(double val) { return std::abs(val) < doubleEps; }
 bool close(double v, double u)
 {
 	return zero(u - v);
+}
+
+bool close(Point const& p, Point const& q)
+{
+	if (std::abs(p.x - q.x) < doubleEps && std::abs(p.y - q.y) < doubleEps)
+		return true;
 }
 
 LinesParallel::LinesParallel(std::string s) : msg(std::move(s))
@@ -158,75 +164,8 @@ PointEdgePos pointAndEdge(Point const& a, Point const& b, Point const& p)
 	}
 }
 
-//TriPos pointAndTriangle(Point const& p, Point const& a, Point const& b, Point const& c)
-//{
-//	auto zero = [](double v) { return std::abs(v) < doubleEps; };
-//	Point ap = p - a;
-//	Point ab = b - a;
-//	Point ac = c - a;
-//	double detA = (ab*ab)*(ac*ac) - (ab*ac)*(ac*ab);
-//	double det1 = (ap*ab)*(ac*ac) - (ap*ac)*(ac*ab);
-//	double det2 = (ab*ab)*(ap*ac) - (ab*ac)*(ap*ab);
-//	double u = det1/detA;
-//	double v = det2/detA;
-//	
-//	if (u < 0.0)
-//	{
-//		if (v < 0.0)
-//			return TriPos::closestToV0;
-//		else if (zero(v))
-//			TriPos::closestToEdge20;
-//		else // D
-//		{
-//			if (v <= 1.0)
-//				return TriPos::closestToEdge20;
-//			else
-//				return TriPos::closestToV2;
-//		}
-//	}
-//	else if (zero(u))
-//	{
-//		if (v < 0.0)
-//			return TriPos::closestToV0;
-//		else if (zero(v))
-//			TriPos::onV0;
-//		else // E
-//		{
-//			if (v > 1.0) return TriPos::onEdge20;
-//			else if (v == 1.0) return TriPos::onV2;
-//			else return TriPos::closestToV2;
-//		}
-//	}
-//	else // u > 0.0
-//	{
-//		if (v < 0.0)
-//		{
-//			if (u <= 1.0) return TriPos::closestToEdge01;
-//			else return TriPos::closestToV1;
-//		}
-//		else if (zero(v))
-//		{
-//			if (u < 1.0) return TriPos::onEdge20;
-//			else if (u == 1.0) return TriPos::onV1;
-//			else return TriPos::closestToV1;
-//		}
-//		else
-//		{
-//			if (u + v < 1.0) return TriPos::inside;
-//			else if (u + v == 1.0) return TriPos::onEdge12;
-//			else {
-//				Point bp = p - b, bc = c - b;
-//				double w = (bp*bc) / (bc*bc);
-//				if (w < 0.0) return TriPos::closestToV1;
-//				else if (w < 1.0) return TriPos::closestToEdge12;
-//				else if (w > 1.0) return TriPos::closestToV2;
-//			}
-//		}
-//	}
-//}
-
-
-std::tuple<Point, TriPos> ClosestPointOnTriangle(Point const& p, Point const& a, Point const& b, Point const& c)
+std::tuple<Point, TriPos> ClosestPointOnTriangle(Point const& p, 
+	Point const& a, Point const& b, Point const& c)
 {
 	Point ab = b - a;
 	Point ac = c - a;
@@ -234,12 +173,12 @@ std::tuple<Point, TriPos> ClosestPointOnTriangle(Point const& p, Point const& a,
 	float d1 = ab * ap;
 	float d2 = ac * ap;
 	if (d1 <= 0.0f && d2 <= 0.0f) 
-		return {a,TriPos::V0}; // onV0 || closestToV0
+		return {a, TriPos::V0}; // onV0 || closestToV0
 	Point bp = p - b;
 	float d3 = ab * bp;
 	float d4 = ac * bp;
 	if (d3 >= 0.0f && d4 <= d3) 
-		return {b,TriPos::V1}; // onV1 || closestToV1
+		return {b, TriPos::V1}; // onV1 || closestToV1
 	float vc = d1*d4 - d3*d2;
 	if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
 		float v = d1 / (d1 - d3);
@@ -250,12 +189,12 @@ std::tuple<Point, TriPos> ClosestPointOnTriangle(Point const& p, Point const& a,
 	float d5 = ab * cp;
 	float d6 = ac * cp;
 	if (d6 >= 0.0f && d5 <= d6) 
-		return {c,TriPos::V2}; // onV2 || closestToV2
+		return {c, TriPos::V2}; // onV2 || closestToV2
 		
 	float vb = d5*d2 - d1*d6;
 	if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
 		float w = d2 / (d2 - d6);
-		return {a + ac*w,TriPos::edge20}; // onEdge20 || closestToEdge20
+		return {a + ac*w, TriPos::edge20}; // onEdge20 || closestToEdge20
 	}
 	
 	float va = d3*d6 - d5*d4;
