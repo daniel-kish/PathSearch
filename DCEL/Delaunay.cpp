@@ -1,9 +1,11 @@
 #define _USE_MATH_DEFINES
 #include "Delaunay.h"
+#include "Kirkpatrick.h"
 #include <cmath>
 #include <cassert>
 #include <random>
 #include <queue>
+#include <iomanip>
 
 DCEL::EdgeList::iterator clip_ear(DCEL& d, DCEL::EdgeList::iterator h)
 {
@@ -112,22 +114,14 @@ localize(DCEL& d, Point const& p)
 		Point const& b = h->target->p;
 		Point const& c = h->next->target->p;
 		
-		Point closest;  TriPos pos;
-		std::tie(closest,pos) = ClosestPointOnTriangle(p,a,b,c);
-
-		if (!zero(dist(closest, p))) 
-			continue;
-		// otherwise
+		Position pos = insideTriangle(a, b, c, p);
 		switch (pos)
 		{
-		case TriPos::V0:
-		case TriPos::V1:
-		case TriPos::V2: 
-			return {d.halfedges.end(),false}; // ignore existing point
-		case TriPos::edge01: return {h,false};
-		case TriPos::edge12: return{h->next,false};
-		case TriPos::edge20: return{h->prev,false};
-		case TriPos::inside: return {h,true};
+		case Position::out: continue;
+		case Position::in: return {h,true};
+		case Position::edge01: return {h,false};
+		case Position::edge12: return {h->next,false};
+		case Position::edge02: return{h->prev,false};
 		}
 	}
 	// if 'p' is an outer point - ignore it
@@ -197,6 +191,76 @@ void insert_point(DCEL& d, Point const& p)
 	}
 }
 
+bool is_CCW_triangle(DCEL::FaceList::iterator f)
+{
+	auto h = f->halfedge;
+	auto i{h};
+	int n{0};
+	do {
+		n++;
+		i = i->next;
+	} while (i != h);
+	if (n != 3) {
+		std::cout << "face " << f->i << " is not a triangle\n";
+		return false;
+	}
+
+	Point const& a = h->prev->target->p;
+	Point const& b = h->target->p;
+	Point const& c = h->next->target->p;
+
+	if (a == b || b == c || c == a) {
+		std::cout << "face " << f->i << " contains coinciding points\n";
+		return false;
+	}
+	else if (h->prev->target == h->target || h->target == h->next->target) {
+		std::cout << "face " << f->i << " contains coinciding vertices\n";
+		return false;
+	}
+	
+	auto x = [](Point const& p) {return p.x; };
+	auto y = [](Point const& p) {return p.y; };
+
+	double det = (x(b) - x(a))*(y(c) - y(a)) - (x(c) - x(a))*(y(b) - y(a));
+
+	if (det < 0.0) {// PolyOrientation::CW;
+		std::cout << "face " << f->i << "is CW\n";
+		return false;
+	}
+	return true;
+}
+
+bool check_triangulation(DCEL& d)
+{
+	if (!is_out_face(d.out_face)) {
+		std::cout << "out_face is not out\n";
+		return false;
+	}
+	for (auto f = d.faces.begin(); f != d.faces.end(); ++f)
+	{
+		if (f == d.out_face) continue;
+		if (!is_CCW_triangle(f))
+			return false;
+		auto h = f->halfedge;
+		Point const& a = h->prev->target->p;
+		Point const& b = h->target->p;
+		Point const& c = h->next->target->p;
+		for (auto v = d.vertices.begin(); v != d.vertices.end(); ++v)
+		{
+			if (v == h->target || v == h->prev->target || v == h->next->target)
+				continue;
+			if (insideTriangle(a, b, c, v->p) == Position::in) {
+				is_CCW_triangle(f);
+				insideTriangle(a, b, c, v->p);
+				std::cout << std::setprecision(12) << "point " << v->p << " is inside the face " 
+					<< '(' << a <<' '<< b <<' '<< c << ')' << '\n';
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 std::vector<Point> rectHull(Rect r, int x_pts, int y_pts)
 {
 	double wid = std::abs(r.dir.x);
@@ -213,6 +277,15 @@ std::vector<Point> rectHull(Rect r, int x_pts, int y_pts)
 		pts.push_back(Point{x,height});
 	for (double y = height; y > 0.0; y -= yStep)
 		pts.push_back(Point{0.0,y});
+
+	auto le = std::unique(pts.begin(), pts.end(), [](Point const& p, Point const& q) {
+		if (abs(p.x - q.x) < 1.0e-5 && abs(p.y - q.y) < 1.0e-5)
+			return true;
+		return false;
+	});
+	pts.erase(le, pts.end());
+	if (abs(pts.back().x - pts.front().x) < 1.0e-5 && abs(pts.back().y - pts.front().y) < 1.0e-5)
+		pts.pop_back();
 
 	pts.shrink_to_fit();
 
@@ -242,7 +315,9 @@ std::vector<Point> rectInsidesRand(Rect r, int n_pts)
 	std::vector<Point> pts; pts.reserve(n_pts);
 	double xb = r.origin.x, xe = r.origin.x + r.dir.x;
 	double yb = r.origin.y, ye = r.origin.y + r.dir.y;
-	std::mt19937 mt{};
+	
+	std::random_device rd;
+	std::mt19937 mt{/*rd()*/};
 	std::uniform_real_distribution<double> xd(xb, xe);
 	std::uniform_real_distribution<double> yd(yb, ye);
 
@@ -256,12 +331,20 @@ std::vector<Point> circleHull(Circle c, int nsteps)
 	double step = 2.0*M_PI / nsteps;
 	std::vector<Point> pts; pts.reserve(nsteps);
 
-	for (double phi = 0.0; phi < 2.0*M_PI; phi += step)
-		pts.push_back( {c.rad*cos(phi), c.rad*sin(phi)} );
+	for (double phi = 0.0; phi < 2.0*M_PI; phi += step) {
+		double rho = c.rad + 0.4*c.rad*sin(3 * phi);
+		pts.push_back(Point{rho*cos(phi), rho*sin(phi)} + c.center);
+	}
 	
-	if (zero(dist(pts.back(), pts.front())))
+	auto le = std::unique(pts.begin(), pts.end(), [](Point const& p, Point const& q) {
+		if (abs(p.x - q.x) < 1.0e-5 && abs(p.y - q.y) < 1.0e-5)
+			return true;
+		return false;
+	});
+	pts.erase(le, pts.end());
+	if (abs(pts.back().x - pts.front().x) < 1.0e-5 && abs(pts.back().y - pts.front().y) < 1.0e-5)
 		pts.pop_back();
+
 	pts.shrink_to_fit();
-	
 	return pts;
 }

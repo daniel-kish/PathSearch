@@ -89,7 +89,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>"C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\PathSearch"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>"C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\PathSearch";"C:\boost\boost_1_62_0"</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -121,7 +121,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>"C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\PathSearch"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>"C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\PathSearch";"C:\boost\boost_1_62_0"</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,14 +153,14 @@
     <ClCompile Include="..\PathSearch\geometry.cpp" />
     <ClCompile Include="..\PathSearch\Point.cpp" />
     <ClCompile Include="DCEL.cpp" />
-    <ClCompile Include="Localization.cpp" />
+    <ClCompile Include="Kirkpatrick.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Delaunay.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DCEL.h" />
     <ClInclude Include="Delaunay.h" />
-    <ClInclude Include="Localization.h" />
+    <ClInclude Include="Kirkpatrick.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

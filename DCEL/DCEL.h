@@ -2,6 +2,11 @@
 #include <list>
 #include "Point.h"
 #include <vector>
+#include "boost\variant.hpp"
+#include <memory>
+#include <tuple>
+
+struct treeNode;
 
 struct DCEL {
 	struct Vertex;
@@ -16,6 +21,7 @@ struct DCEL {
 		EdgeList::iterator halfedge;
 	};
 	struct Face {
+		treeNode* hist; // this face's representation in history graph
 		int i;
 		EdgeList::iterator halfedge;
 	};
@@ -27,6 +33,12 @@ struct DCEL {
 		VertexList::iterator target;
 		FaceList::iterator face;
 	};
+
+	DCEL(DCEL&&);
+	DCEL(DCEL const&) = delete;
+	
+	DCEL& operator=(DCEL&&);
+	DCEL& operator=(DCEL const& d) = delete;
 
 	VertexList vertices;
 	FaceList faces;

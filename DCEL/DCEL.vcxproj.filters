@@ -30,7 +30,7 @@
     <ClCompile Include="Delaunay.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
-    <ClCompile Include="Localization.cpp">
+    <ClCompile Include="Kirkpatrick.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,7 +41,7 @@
     <ClInclude Include="Delaunay.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="Localization.h">
+    <ClInclude Include="Kirkpatrick.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
   </ItemGroup>

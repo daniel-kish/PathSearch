@@ -42,7 +42,7 @@ std::tuple<double, double> intersection(Point const& origin, Point const& dir, L
 
 	if (det == 0.0) {
 		std::ostringstream errMsg;
-		errMsg << "intersection(): LinesParallel: " << origin <<' '<< dir <<' '<< l.a <<" - "<< l.b << '\n';
+		errMsg << "intersection(): LinesParallel: " << origin << ' ' << dir << ' ' << l.a << " - " << l.b << '\n';
 		throw LinesParallel(errMsg.str());
 	}
 
@@ -51,7 +51,7 @@ std::tuple<double, double> intersection(Point const& origin, Point const& dir, L
 
 	double t = det1 / det;
 	double u = det2 / det;
-	return {t,u};
+	return{t,u};
 }
 
 Edge common_edge(Triangle t1, Triangle t2)
@@ -130,7 +130,7 @@ std::tuple<Triangle, Triangle> flip(Triangle t1, Triangle t2, Edge e)
 	t1 = set_union(ne, Simplex<1>{e[0]});
 	t2 = set_union(ne, Simplex<1>{e[1]});
 
-	return {t1, t2};
+	return{t1, t2};
 }
 
 std::ostream & operator<<(std::ostream & os, TriPos const & p)
@@ -164,7 +164,7 @@ PointEdgePos pointAndEdge(Point const& a, Point const& b, Point const& p)
 	}
 }
 
-std::tuple<Point, TriPos> ClosestPointOnTriangle(Point const& p, 
+std::tuple<Point, TriPos> ClosestPointOnTriangle(Point const& p,
 	Point const& a, Point const& b, Point const& c)
 {
 	Point ab = b - a;
@@ -172,40 +172,40 @@ std::tuple<Point, TriPos> ClosestPointOnTriangle(Point const& p,
 	Point ap = p - a;
 	float d1 = ab * ap;
 	float d2 = ac * ap;
-	if (d1 <= 0.0f && d2 <= 0.0f) 
-		return {a, TriPos::V0}; // onV0 || closestToV0
+	if (d1 <= 0.0f && d2 <= 0.0f)
+		return{a, TriPos::V0}; // onV0 || closestToV0
 	Point bp = p - b;
 	float d3 = ab * bp;
 	float d4 = ac * bp;
-	if (d3 >= 0.0f && d4 <= d3) 
-		return {b, TriPos::V1}; // onV1 || closestToV1
+	if (d3 >= 0.0f && d4 <= d3)
+		return{b, TriPos::V1}; // onV1 || closestToV1
 	float vc = d1*d4 - d3*d2;
 	if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
 		float v = d1 / (d1 - d3);
-		return {a + ab * v, TriPos::edge01}; // onEdge01 || closestToEdge01
+		return{a + ab * v, TriPos::edge01}; // onEdge01 || closestToEdge01
 	}
-	
+
 	Point cp = p - c;
 	float d5 = ab * cp;
 	float d6 = ac * cp;
-	if (d6 >= 0.0f && d5 <= d6) 
-		return {c, TriPos::V2}; // onV2 || closestToV2
-		
+	if (d6 >= 0.0f && d5 <= d6)
+		return{c, TriPos::V2}; // onV2 || closestToV2
+
 	float vb = d5*d2 - d1*d6;
 	if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
 		float w = d2 / (d2 - d6);
-		return {a + ac*w, TriPos::edge20}; // onEdge20 || closestToEdge20
+		return{a + ac*w, TriPos::edge20}; // onEdge20 || closestToEdge20
 	}
-	
+
 	float va = d3*d6 - d5*d4;
 	if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
 		float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-		return {b + (c - b)*w, TriPos::edge12}; // onEdge12 || closestToEdge12
+		return{b + (c - b)*w, TriPos::edge12}; // onEdge12 || closestToEdge12
 	}
 	float denom = 1.0f / (va + vb + vc);
 	float v = vb * denom;
 	float w = vc * denom;
-	return {a + ab * v + ac * w, TriPos::inside}; // inside
+	return{a + ab * v + ac * w, TriPos::inside}; // inside
 }
 
 Point projectOnEdge(Point const& a, Point const& b, Point const& p)
@@ -240,8 +240,9 @@ std::ostream& operator<< (std::ostream& os, Position const& p)
 
 Side side(Point const& a, Point const& b, Point const& c)
 {
-	double det = (c.x-a.x)*(b.y-a.y) - (b.x-a.x)*(c.y-a.y);
-	if (det == 0.0)
+	double det = (c.x - a.x)*(b.y - a.y) - (b.x - a.x)*(c.y - a.y);
+	det /= norm(b - a);
+	if (std::abs(det) < 1.0e-6)
 	{
 		double s1 = (b - a)*(c - a);
 		double s2 = (a - b)*(c - b);
@@ -326,7 +327,7 @@ Point triangleCenter(std::vector<Point> const& v, Triangle const& t)
 	Point b = v[t[1]];
 	Point c = v[t[2]];
 
-	Point center = (a + b + c) * (1.0/3.0);
+	Point center = (a + b + c) * (1.0 / 3.0);
 	return center;
 }
 
@@ -363,15 +364,22 @@ std::vector<Point> polygonPts(std::vector<Point> const& pts, std::vector<int> po
 
 bool insidePoly(std::vector<Point> const& poly, Point const& p)
 {
-	std::mt19937 mt{std::random_device{}()};
+	static std::random_device rd;
+	if (poly.empty()) return false;
+	std::mt19937 mt{rd()};
 	std::uniform_real_distribution<double> ud(0.0, 1.0);
 	Point dir{ud(mt),ud(mt)};
 	int intersections = 0;
-	for (int i = 0; i < poly.size()-1; ++i)
+	for (int i = 0; i < poly.size() - 1; ++i)
 	{
 		Line edge{poly[i],poly[i + 1]};
 		double t, u;
-		std::tie(t,u) = intersection(p, dir, edge);
+		try {
+			std::tie(t, u) = intersection(p, dir, edge);
+		}
+		catch (LinesParallel const& le) {
+			return insidePoly(poly, p);
+		}
 		if (t >= 0.0 && t <= 1.0 && u >= 0.0)
 			intersections++;
 	}
@@ -383,9 +391,80 @@ bool insidePoly(std::vector<Point> const& poly, Point const& p)
 	return intersections % 2;
 }
 
+const double edge_eps = 0.001;
+const double edge_eps_sq = edge_eps*edge_eps;
+
+double signed_area(Point const& p1, Point const& p2, Point const& p)
+{
+	return (p2.y - p1.y)*(p.x - p1.x) + (-p2.x + p1.x)*(p.y - p1.y);
+}
+
+bool naivePointInTriangle(Point const& p1, Point const& p2, Point const& p3, Point const& p)
+{
+	bool checkSide1 = signed_area(p1, p2, p) >= 0;
+	bool checkSide2 = signed_area(p2, p3, p) >= 0;
+	bool checkSide3 = signed_area(p3, p1, p) >= 0;
+	return checkSide1 && checkSide2 && checkSide3;
+}
+
+bool pointInTriangleBoundingBox(Point const& a, Point const& b, Point const& c, Point const& p)
+{
+	double xmin = std::min({a.x, b.x, c.x}) - edge_eps;
+	double xmax = std::max({a.x, b.x, c.x}) + edge_eps;
+	double ymin = std::min({a.y, b.y, c.y}) - edge_eps;
+	double ymax = std::max({a.y, b.y, c.y}) + edge_eps;
+	if (p.x < xmin || p.x > xmax || p.y < ymin || p.y > ymax)
+		return false;
+	else
+		return true;
+}
+
+double distanceSquarePointToSegment(Point const& p1, Point const& p2, Point const& p)
+{
+	double p1_p2_squareLength = (p2.x - p1.x)*(p2.x - p1.x) + (p2.y - p1.y)*(p2.y - p1.y);
+	double dotProduct = ((p.x - p1.x)*(p2.x - p1.x) + (p.y - p1.y)*(p2.y - p1.y)) / p1_p2_squareLength;
+	if (dotProduct < 0)
+	{
+		return (p.x - p1.x)*(p.x - p1.x) + (p.y - p1.y)*(p.y - p1.y);
+	}
+	else if (dotProduct <= 1)
+	{
+		double p_p1_squareLength = (p1.x - p.x)*(p1.x - p.x) + (p1.y - p.y)*(p1.y - p.y);
+		return p_p1_squareLength - dotProduct * dotProduct * p1_p2_squareLength;
+	}
+	else
+	{
+		return (p.x - p2.x)*(p.x - p2.x) + (p.y - p2.y)*(p.y - p2.y);
+	}
+}
+
+bool accuratePointInTriangle(Point const& p1, Point const& p2, Point const& p3, Point const& p)
+{
+	if (!pointInTriangleBoundingBox(p1,p2,p3,p))
+		return false;
+
+	if (naivePointInTriangle(p1,p2,p3,p))
+		return true;
+
+	if (distanceSquarePointToSegment(p1,p2,p) <= edge_eps_sq)
+		return true;
+	if (distanceSquarePointToSegment(p2,p3,p) <= edge_eps_sq)
+		return true;
+	if (distanceSquarePointToSegment(p3,p1,p) <= edge_eps_sq)
+		return true;
+
+	return false;
+}
 
 Position insideTriangle(Point const& a, Point const& b, Point const& c, Point const& p)
 {
+	double xmin = std::min({a.x, b.x, c.x}) - 1.0e-4;
+	double xmax = std::max({a.x, b.x, c.x}) + 1.0e-4;
+	double ymin = std::min({a.y, b.y, c.y}) - 1.0e-4;
+	double ymax = std::max({a.y, b.y, c.y}) + 1.0e-4;
+	if (p.x < xmin || p.x > xmax || p.y < ymin || p.y > ymax)
+		return Position::out;
+
 	auto s1 = side(a, b, p);
 	auto s2 = side(b, c, p);
 	auto s3 = side(c, a, p);

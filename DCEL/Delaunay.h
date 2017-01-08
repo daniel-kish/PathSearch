@@ -14,7 +14,11 @@ DCEL::EdgeList::iterator flip(DCEL& d, DCEL::EdgeList::iterator h);
 std::tuple<DCEL::EdgeList::iterator, bool> localize(DCEL& d, Point const& p);
 void insert_point(DCEL& d, Point const& p);
 void insert_point_inside(DCEL& d, DCEL::EdgeList::iterator h, Point const& p);
+void insert_point_on_edge(DCEL& d, DCEL::EdgeList::iterator h, Point const& p);
 
+bool check_triangulation(DCEL& d);
+
+std::tuple<DCEL,treeNode*> initialize_Delaunay_Kirkpatrick(double coord);
 
 std::vector<Point> rectHull(Rect r, int x_pts, int y_pts);
 std::vector<Point> rectInsides(Rect r, int x_pts, int y_pts);

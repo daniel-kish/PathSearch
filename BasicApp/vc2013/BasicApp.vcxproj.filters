@@ -36,15 +36,12 @@
     <ClCompile Include="..\..\DCEL\Delaunay.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\DCEL\Localization.cpp">
+    <ClCompile Include="..\..\DCEL\Kirkpatrick.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\Resources.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\PathSearch\Tree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

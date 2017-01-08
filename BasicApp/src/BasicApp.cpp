@@ -9,7 +9,8 @@
 #include <random>
 #include "geometry.h"
 #include "Delaunay.h"
-#include "Localization.h"
+#include <algorithm>
+#include "Kirkpatrick.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -36,23 +37,21 @@ std::vector<Poly> readPoly(std::ifstream& input)
 	return polys;
 }
 
-
 class BasicApp : public App {
 public:
 	void setup() override
 	{
-		//std::ifstream is(R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\poly1.dat)");
-		//std::vector<Point> poly = readPoly(is)[8];
-		//std::vector<Point> poly = circleHull(Circle{{0,0},100}, 10);
-		std::vector<Point> poly = rectHull(Rect{{500,300},{-250,-150}}, 50, 30);
+		double d = 5'000;
+		std::vector<Point> poly{{-d,-d},{d,-d},{0,d}};
 
 		dcel = std::make_unique<DCEL>(mk_CCW_poly(poly));
 		auto poly_face = std::next(dcel->faces.begin());
 		dcel->out_face = dcel->faces.begin();
-		cur = dcel->halfedges.begin();
-		//polygon_delaunay_triangulation(*dcel, poly_face);
 
-		found = cur;
+		root = std::make_unique<treeNode>(poly_face);
+		poly_face->hist = root.get(); // hand-shaking
+
+		hf = dcel->halfedges.begin();
 
 		auto src = DataSourcePath::create(
 			R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\BasicApp\fonts\Consolas.ttf)"
@@ -69,7 +68,7 @@ public:
 private:
 	vec2 toVec2(Point const& p) { return{float(p.x), float(p.y)}; }
 	void drawPoint(Point const& p, float rad = 1.5f) {
-		gl::drawSolidCircle(toVec2(p), rad/scaleFac, 20);
+		gl::drawSolidCircle(toVec2(p), rad / scaleFac, 20);
 	}
 	void drawLine(Point const& p, Point const& q)
 	{
@@ -77,6 +76,14 @@ private:
 	}
 	void drawHalfedge(DCEL::Halfedge const& h)
 	{
+		if (h.target == std::prev(dcel->vertices.end())
+			|| h.target == std::prev(dcel->vertices.end(), 2)
+			|| h.target == std::prev(dcel->vertices.end(), 3))
+			return;
+		if (h.twin->target == std::prev(dcel->vertices.end())
+			|| h.twin->target == std::prev(dcel->vertices.end(), 2)
+			|| h.twin->target == std::prev(dcel->vertices.end(), 3))
+			return;
 		Point const& target = h.target->p;
 		Point const& source = h.prev->target->p;
 		Point mid = (source + target)*0.5;
@@ -84,7 +91,7 @@ private:
 		gl::lineWidth(2.0f);
 		drawLine(target, mid);
 		gl::color(Color("black"));
-		drawPoint(target,3.0f);
+		drawPoint(target, 3.0f);
 	}
 
 	Point facecenter(DCEL::Face const& f)
@@ -106,10 +113,10 @@ private:
 	{
 		auto h = f.halfedge;
 		auto i = h;
-		
+
 		ci::PolyLine2 pl;
-		
-		while (true) 
+
+		while (true)
 		{
 			pl.push_back(toVec2(i->target->p));
 			i = i->next;
@@ -131,14 +138,20 @@ private:
 			i = i->next;
 			if (i == h) break;
 		}
-		gl::color(col);
+		gl::color(col.r,col.g,col.b,0.5);
 		gl::drawSolid(pl);
 	}
 
 	std::unique_ptr<DCEL> dcel;
-	DCEL::EdgeList::iterator cur;
+	std::unique_ptr<treeNode> root;
+	std::vector<std::pair<Point, Point>> voronoi_edges;
+	std::vector<std::vector<Point>> polys;
+	std::vector<Point> out_poly;
 
-	DCEL::EdgeList::iterator found;
+	DCEL::EdgeList::iterator hf;
+	bool inside;
+
+	std::vector<search_result> found;
 
 	Point mousePos;
 	int height, wid;
@@ -159,8 +172,9 @@ void BasicApp::mouseMove(MouseEvent event)
 	mousePos.y *= -1.0;
 	mousePos = mousePos * (1.0 / scaleFac);
 
-	bool b;
-	std::tie(found,b) = localize(*dcel, mousePos);
+	//found = Kirkpatrick_localize(root.get(), mousePos);
+
+	std::tie(hf,inside) = localize(*dcel, mousePos);
 }
 
 void BasicApp::mouseWheel(MouseEvent event)
@@ -175,30 +189,72 @@ void BasicApp::mouseWheel(MouseEvent event)
 
 void BasicApp::mouseDown(MouseEvent event)
 {
-	insert_point(*dcel, mousePos);
+	insert_point(*dcel, root.get(), mousePos);
+	//found = Kirkpatrick_localize(root.get(), mousePos);
+	hf = dcel->halfedges.begin();
 }
-
 void BasicApp::keyDown(KeyEvent event)
 {
-	if (event.getCode() == 'n')
-		cur = cur->next;
-	if (event.getCode() == 'p')
-		cur = cur->prev;
-	if (event.getCode() == 't')
-		cur = cur->twin;
-	if (event.getCode() == 'c') {
-		cur = clip_delaunay_ear(*dcel, cur);
+	if (event.getCode() == 'v') {
+		std::vector<Point> ins = rectHull(Rect{{400,400},{-200,-200}}, 200, 200);
+		out_poly = ins;
+		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
+
+		for (Point const& p : ins)
+			insert_point(*dcel, root.get(), p);
+		ins = rectHull(Rect{{100,100},{-150,-150}}, 50, 50);
+		polys.push_back(ins);
+		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
+		for (Point const& p : ins)
+			insert_point(*dcel, root.get(), p);
+
+		ins = rectHull(Rect{{10,120},{-50,0}}, 5, 60);
+		polys.push_back(ins);
+		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
+		for (Point const& p : ins)
+			insert_point(*dcel, root.get(), p);
+
+		ins = circleHull(Circle{{80,80},80}, 200);
+		polys.push_back(ins);
+		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
+		for (Point const& p : ins)
+			insert_point(*dcel, root.get(), p);
 	}
-	if (event.getCode() == 'a') {
-		Point mid = (cur->target->p + cur->prev->target->p)*0.5;
-		insert_point(*dcel, mid);
-		cur = dcel->halfedges.begin();
+	if (event.getCode() == 's') {
+		voronoi_edges.clear();
+		for (auto f = dcel->faces.begin(); f != dcel->faces.end(); ++f)
+		{
+			if (f == dcel->out_face) continue;
+			Point f_center = circumCenter(f->halfedge->prev->target->p,
+				f->halfedge->target->p,
+				f->halfedge->next->target->p);
+			auto i = f->halfedge;
+			do {
+				Point fi_center = circumCenter(i->twin->prev->target->p,
+					i->twin->target->p,
+					i->twin->next->target->p);
+				voronoi_edges.push_back({f_center,fi_center});
+				i = i->next;
+			} while (i != f->halfedge);
+		}
+	}
+	if (event.getCode() == 'c') {
+		voronoi_edges.clear();
 	}
 	if (event.getCode() == 'f') {
-		cur = flip(*dcel, cur);
-	}
-	if (event.getCode() == 'd') {
-		polygon_delaunay_triangulation(*dcel, cur->face);
+		auto le = std::remove_if(begin(voronoi_edges), end(voronoi_edges), [this](auto const& e) {
+			for (Poly const& poly : polys) {
+				if (insidePoly(poly, e.first) || insidePoly(poly, e.second))
+					return true;
+			}
+		});
+		voronoi_edges.erase(le, voronoi_edges.end());
+		
+		le = std::partition(begin(voronoi_edges), end(voronoi_edges), [this](auto const& edge) {
+			if (!insidePoly(out_poly, edge.first) || !insidePoly(out_poly, edge.second))
+				return false;
+		});
+		voronoi_edges.erase(le, voronoi_edges.end());
 	}
 }
 
@@ -214,19 +270,35 @@ void BasicApp::draw()
 	gl::clear(Color("white"));
 
 	gl::color(Color("black"));
-	
+
 	if (dcel) {
 		for (DCEL::Halfedge const& h : dcel->halfedges)
 			drawHalfedge(h);
-		drawSolidFace(*cur->face);
+		//drawSolidFace(*cur->face);
 		gl::color(Color("red"));
 		gl::lineWidth(2.0f);
-		gl::drawVector({cur->prev->target->p.x,cur->prev->target->p.y,0.0},
-		{cur->target->p.x,cur->target->p.y,0.0}, 25.0,4.0f);
 	}
 	drawPoint(mousePos, 2.5f);
-	if (found != dcel->halfedges.end())
-		drawSolidFace(*found->face, Color("green"));
+
+	/*for (const search_result& res : found)
+	{
+		drawSolidFace(*boost::get<DCEL::FaceList::iterator>(res.node->face_data),Color("green"));
+	}*/
+	if (hf != dcel->halfedges.end()) {
+		if (inside)
+			drawSolidFace(*hf->face, Color("green"));
+		else {
+			gl::color(0.0f, 1.0f, 0.0f, 0.5f);
+			drawLine(hf->target->p, hf->twin->target->p);
+		}
+	}
+	for (auto const& edge : voronoi_edges) {
+		gl::color(Color("blue"));
+		drawPoint(edge.first, 2.5f);
+		drawPoint(edge.second, 2.5f);
+		gl::color(Color("darkblue"));
+		drawLine(edge.first, edge.second);
+	}
 	{
 		gl::pushModelMatrix();
 		gl::scale(vec2{1,-1} / scaleFac);

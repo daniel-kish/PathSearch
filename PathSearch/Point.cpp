@@ -43,7 +43,7 @@ double crossProdZ(Point const & a, Point const & b)
 
 std::ostream& operator<< (std::ostream& os, Point const& p)
 {
-	return os << '(' << p.x << ' ' << p.y << ')';
+	return os << '{' << p.x << ", " << p.y << '}';
 }
 
 double norm(Point const& p)

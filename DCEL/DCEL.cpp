@@ -2,6 +2,7 @@
 #include "Point.h"
 #include <cassert>
 #include "geometry.h"
+#include <stack>
 
 DCEL::DCEL(Point p, Point q)
 {
@@ -29,6 +30,23 @@ DCEL::DCEL(Point p, Point q)
 	h1->twin = h0;
 }
 
+DCEL::DCEL(DCEL&& from) {
+	vertices = std::move(from.vertices);
+	halfedges = std::move(from.halfedges);
+	faces = std::move(from.faces);
+	out_face = from.out_face;
+}
+
+DCEL& DCEL::operator=(DCEL && from)
+{
+	vertices = std::move(from.vertices);
+	halfedges = std::move(from.halfedges);
+	faces = std::move(from.faces);
+	out_face = from.out_face;
+	return *this;
+}
+
+
 DCEL::VertexList::iterator DCEL::newVertex(Point const& p)
 {
 	vertices.push_front({p});
@@ -39,7 +57,7 @@ DCEL::FaceList::iterator DCEL::newFace()
 {
 	int i = 0;
 	if (!faces.empty()) i = faces.begin()->i + 1;
-	faces.push_front({i});
+	faces.push_front(Face{nullptr,i,{}});
 	return faces.begin();
 }
 
@@ -210,7 +228,6 @@ void DCEL::join_face(EdgeList::iterator h)
 	faces.erase(f2);
 }
 
-
 bool is_out_face(DCEL::FaceList::iterator f)
 {
 	auto h = f->halfedge;
@@ -256,3 +273,5 @@ DCEL mk_CCW_poly(std::vector<Point> const& poly)
 	}
 	return d;
 }
+
+

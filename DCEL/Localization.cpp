@@ -52,7 +52,7 @@ void Lozalization::step()
 	auto res = closed.insert(current);
 	if (!res.second) return;
 
-	if (zero(current.dist_to_p)) {
+	if (current.dist_to_p < 0.01) {
 		if (current.pos == TriPos::V0 || current.pos == TriPos::V1
 			|| current.pos == TriPos::V2) { // on a vertex
 			state = ignore;
