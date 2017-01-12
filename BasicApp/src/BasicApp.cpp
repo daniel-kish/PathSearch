@@ -196,25 +196,25 @@ void BasicApp::mouseDown(MouseEvent event)
 void BasicApp::keyDown(KeyEvent event)
 {
 	if (event.getCode() == 'v') {
-		std::vector<Point> ins = rectHull(Rect{{400,400},{-200,-200}}, 200, 200);
+		std::vector<Point> ins = rectHull(Rect{{400,400},{-200,-200}}, 100, 100);
 		out_poly = ins;
 		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
-
 		for (Point const& p : ins)
 			insert_point(*dcel, root.get(), p);
-		ins = rectHull(Rect{{100,100},{-150,-150}}, 50, 50);
+
+		ins = rectHull(Rect{{100,100},{-150,-150}}, 25, 25);
 		polys.push_back(ins);
 		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
 		for (Point const& p : ins)
 			insert_point(*dcel, root.get(), p);
 
-		ins = rectHull(Rect{{10,120},{-50,0}}, 5, 60);
+		ins = rectHull(Rect{{10,120},{-50,0}}, 4, 30);
 		polys.push_back(ins);
 		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
 		for (Point const& p : ins)
 			insert_point(*dcel, root.get(), p);
 
-		ins = circleHull(Circle{{80,80},80}, 200);
+		ins = circleHull(Circle{{80,80},80}, 100);
 		polys.push_back(ins);
 		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
 		for (Point const& p : ins)
@@ -242,6 +242,19 @@ void BasicApp::keyDown(KeyEvent event)
 		voronoi_edges.clear();
 	}
 	if (event.getCode() == 'f') {
+		for (std::pair<Point, Point> & edge : voronoi_edges)
+		{
+			if (!(edge.first < edge.second))
+				std::swap(edge.first, edge.second);
+		}
+		std::sort(voronoi_edges.begin(), voronoi_edges.end(), []
+		(std::pair<Point, Point> const& e1, std::pair<Point, Point> const& e2) {
+			return std::min(e1.first, e1.second) < std::min(e2.first, e2.second);
+		});
+		auto le1 = std::unique(voronoi_edges.begin(), voronoi_edges.end());
+		voronoi_edges.erase(le1, voronoi_edges.end());
+
+
 		auto le = std::remove_if(begin(voronoi_edges), end(voronoi_edges), [this](auto const& e) {
 			for (Poly const& poly : polys) {
 				if (insidePoly(poly, e.first) || insidePoly(poly, e.second))
@@ -255,6 +268,7 @@ void BasicApp::keyDown(KeyEvent event)
 				return false;
 		});
 		voronoi_edges.erase(le, voronoi_edges.end());
+		
 	}
 }
 
@@ -270,15 +284,38 @@ void BasicApp::draw()
 	gl::clear(Color("white"));
 
 	gl::color(Color("black"));
+	gl::lineWidth(2.0f);
+	for (DCEL::Vertex const& v : dcel->vertices)
+		drawPoint(v.p,2.5f);
+	for (DCEL::Halfedge const& h : dcel->halfedges)
+		drawLine(h.target->p, h.twin->target->p);
 
-	if (dcel) {
-		for (DCEL::Halfedge const& h : dcel->halfedges)
-			drawHalfedge(h);
-		//drawSolidFace(*cur->face);
-		gl::color(Color("red"));
-		gl::lineWidth(2.0f);
+	gl::lineWidth(1.0f);
+	for (Poly const& poly : polys)
+	{
+		ci::PolyLine2 pl;
+		for (Point const& p : poly)
+			pl.push_back(toVec2(p));
+		gl::color(0.1f, 0.1f, 0.75f, 0.5f);
+		gl::drawSolid(pl);
 	}
-	drawPoint(mousePos, 2.5f);
+	gl::lineWidth(2.0f);
+	{// out_poly
+		ci::PolyLine2 pl;
+		for (Point const& p : out_poly)
+			pl.push_back(toVec2(p));
+		gl::color(0.2f, 0.2f, 0.2f, 0.2f);
+		gl::drawSolid(pl);
+	}
+
+	//if (dcel) {
+	//	for (DCEL::Halfedge const& h : dcel->halfedges)
+	//		drawHalfedge(h);
+	//	//drawSolidFace(*cur->face);
+	//	gl::color(Color("red"));
+	//	gl::lineWidth(2.0f);
+	//}
+	//drawPoint(mousePos, 2.5f);
 
 	/*for (const search_result& res : found)
 	{
@@ -292,13 +329,13 @@ void BasicApp::draw()
 			drawLine(hf->target->p, hf->twin->target->p);
 		}
 	}
+
+	gl::color(Color("darkgreen"));
+	gl::lineWidth(3.0f);
 	for (auto const& edge : voronoi_edges) {
-		gl::color(Color("blue"));
-		drawPoint(edge.first, 2.5f);
-		drawPoint(edge.second, 2.5f);
-		gl::color(Color("darkblue"));
 		drawLine(edge.first, edge.second);
 	}
+
 	{
 		gl::pushModelMatrix();
 		gl::scale(vec2{1,-1} / scaleFac);

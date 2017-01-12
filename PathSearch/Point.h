@@ -5,6 +5,12 @@ struct Point {
 	double x, y;
 };
 
+double& x(Point& p);
+double& y(Point& p);
+
+const double& x(Point const& p);
+const double& y(Point const& p);
+
 bool operator==(Point const& p, Point const& q);
 
 bool operator!=(Point const& p, Point const& q);

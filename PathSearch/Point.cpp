@@ -1,6 +1,13 @@
 #include "Point.h"
 #include <tuple>
 
+
+double& x(Point& p) { return  p.x; }
+double& y(Point& p) { return  p.y; }
+
+const double& x(Point const& p) { return  p.x; }
+const double& y(Point const& p) { return  p.y; }
+
 bool operator==(Point const& p, Point const& q)
 {
 	return p.x == q.x && p.y == q.y; // TODO approx
