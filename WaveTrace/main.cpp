@@ -116,7 +116,9 @@ int main()
 	f(1, 2) = node::banned;
 	f(1, 3) = node::banned;
 
+
 	bfs_enumerate(f, 0, 3);
+	std::cout << f << '\n';
 
 	auto path = build_path(f, 0, 3, 4, 0);
 	std::reverse(path.begin(), path.end());
