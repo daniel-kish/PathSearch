@@ -60,7 +60,6 @@ void bfs_enumerate(field& f, int row, int col)
 		auto head = q.front(); q.pop();
 
 		node head_val = f(head.first, head.second);
-		std::cout << head.first << ' ' << head.second << ':' << head_val << '\n';
 
 		if (head.first < f.cols - 1 && f(head.first + 1, head.second) == node::empty) {
 			f(head.first + 1, head.second) = head_val + 1;
@@ -78,7 +77,6 @@ void bfs_enumerate(field& f, int row, int col)
 			f(head.first, head.second - 1) = head_val + 1;
 			q.push({head.first,head.second - 1});
 		}
-		std::cout << f << "\n\n";
 	}
 }
 
