@@ -391,71 +391,6 @@ bool insidePoly(std::vector<Point> const& poly, Point const& p)
 	return intersections % 2;
 }
 
-const double edge_eps = 0.001;
-const double edge_eps_sq = edge_eps*edge_eps;
-
-double signed_area(Point const& p1, Point const& p2, Point const& p)
-{
-	return (p2.y - p1.y)*(p.x - p1.x) + (-p2.x + p1.x)*(p.y - p1.y);
-}
-
-bool naivePointInTriangle(Point const& p1, Point const& p2, Point const& p3, Point const& p)
-{
-	bool checkSide1 = signed_area(p1, p2, p) >= 0;
-	bool checkSide2 = signed_area(p2, p3, p) >= 0;
-	bool checkSide3 = signed_area(p3, p1, p) >= 0;
-	return checkSide1 && checkSide2 && checkSide3;
-}
-
-bool pointInTriangleBoundingBox(Point const& a, Point const& b, Point const& c, Point const& p)
-{
-	double xmin = std::min({a.x, b.x, c.x}) - edge_eps;
-	double xmax = std::max({a.x, b.x, c.x}) + edge_eps;
-	double ymin = std::min({a.y, b.y, c.y}) - edge_eps;
-	double ymax = std::max({a.y, b.y, c.y}) + edge_eps;
-	if (p.x < xmin || p.x > xmax || p.y < ymin || p.y > ymax)
-		return false;
-	else
-		return true;
-}
-
-double distanceSquarePointToSegment(Point const& p1, Point const& p2, Point const& p)
-{
-	double p1_p2_squareLength = (p2.x - p1.x)*(p2.x - p1.x) + (p2.y - p1.y)*(p2.y - p1.y);
-	double dotProduct = ((p.x - p1.x)*(p2.x - p1.x) + (p.y - p1.y)*(p2.y - p1.y)) / p1_p2_squareLength;
-	if (dotProduct < 0)
-	{
-		return (p.x - p1.x)*(p.x - p1.x) + (p.y - p1.y)*(p.y - p1.y);
-	}
-	else if (dotProduct <= 1)
-	{
-		double p_p1_squareLength = (p1.x - p.x)*(p1.x - p.x) + (p1.y - p.y)*(p1.y - p.y);
-		return p_p1_squareLength - dotProduct * dotProduct * p1_p2_squareLength;
-	}
-	else
-	{
-		return (p.x - p2.x)*(p.x - p2.x) + (p.y - p2.y)*(p.y - p2.y);
-	}
-}
-
-bool accuratePointInTriangle(Point const& p1, Point const& p2, Point const& p3, Point const& p)
-{
-	if (!pointInTriangleBoundingBox(p1,p2,p3,p))
-		return false;
-
-	if (naivePointInTriangle(p1,p2,p3,p))
-		return true;
-
-	if (distanceSquarePointToSegment(p1,p2,p) <= edge_eps_sq)
-		return true;
-	if (distanceSquarePointToSegment(p2,p3,p) <= edge_eps_sq)
-		return true;
-	if (distanceSquarePointToSegment(p3,p1,p) <= edge_eps_sq)
-		return true;
-
-	return false;
-}
-
 Position insideTriangle(Point const& a, Point const& b, Point const& c, Point const& p)
 {
 	double xmin = std::min({a.x, b.x, c.x}) - 1.0e-4;
@@ -464,6 +399,13 @@ Position insideTriangle(Point const& a, Point const& b, Point const& c, Point co
 	double ymax = std::max({a.y, b.y, c.y}) + 1.0e-4;
 	if (p.x < xmin || p.x > xmax || p.y < ymin || p.y > ymax)
 		return Position::out;
+
+	double sq_a = sqNorm(p - a);
+	if (sq_a < 0.0001) return Position::out;
+	double sq_b = sqNorm(p - b);
+	if (sq_b < 0.0001) return Position::out;
+	double sq_c = sqNorm(p - c);
+	if (sq_c < 0.0001) return Position::out;
 
 	auto s1 = side(a, b, p);
 	auto s2 = side(b, c, p);

@@ -56,9 +56,9 @@ DCEL::VertexList::iterator DCEL::newVertex(Point const& p)
 DCEL::FaceList::iterator DCEL::newFace()
 {
 	int i = 0;
-	if (!faces.empty()) i = faces.begin()->i + 1;
-	faces.push_front(Face{nullptr,i,{}});
-	return faces.begin();
+	if (!faces.empty()) i = std::prev(faces.end())->i + 1;
+	faces.push_back(Face{nullptr,i,{}});
+	return std::prev(faces.end());
 }
 
 DCEL::EdgeList::iterator DCEL::newHalfedge()

@@ -147,13 +147,15 @@ void insert_point_on_edge(DCEL& d, DCEL::EdgeList::iterator h, Point const& p)
 
 void insert_point(DCEL& d, Point const& p)
 {
+	DCEL::VertexList::iterator vertex;
 	DCEL::EdgeList::iterator h; bool inside;
 	std::tie(h,inside) = localize(d, p);
 	if (h == d.halfedges.end()) return;
 
-	std::queue<DCEL::EdgeList::iterator> q;
+	Queue q;
 	if (inside) {
 		insert_point_inside(d, h, p);
+		vertex = h->next->target;
 		q.push(h);
 		h = h->next->twin->next;
 		q.push(h);
@@ -162,6 +164,7 @@ void insert_point(DCEL& d, Point const& p)
 	}
 	else {
 		insert_point_on_edge(d, h, p);
+		vertex = h->target;
 		h = h->prev;
 		q.push(h);
 
@@ -189,6 +192,7 @@ void insert_point(DCEL& d, Point const& p)
 			q.push(h->twin->next);
 		}
 	}
+	//return vertex;
 }
 
 bool is_CCW_triangle(DCEL::FaceList::iterator f)
@@ -332,7 +336,7 @@ std::vector<Point> circleHull(Circle c, int nsteps)
 	std::vector<Point> pts; pts.reserve(nsteps);
 
 	for (double phi = 0.0; phi < 2.0*M_PI; phi += step) {
-		double rho = c.rad + 0.4*c.rad*sin(3 * phi);
+		double rho = c.rad /*+ 0.4*c.rad*sin(3 * phi)*/;
 		pts.push_back(Point{rho*cos(phi), rho*sin(phi)} + c.center);
 	}
 	

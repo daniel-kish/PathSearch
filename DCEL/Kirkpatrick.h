@@ -5,6 +5,9 @@
 #include "DCEL.h"
 #include "geometry.h"
 
+extern long int depth;
+extern long int num_vertices;
+
 using triangle_vertices = std::tuple<DCEL::VertexList::iterator,
 	DCEL::VertexList::iterator, DCEL::VertexList::iterator>;
 
@@ -13,7 +16,9 @@ Point const& point(triangle_vertices const& tp, int i);
 struct treeNode {
 	boost::variant<DCEL::FaceList::iterator, triangle_vertices> face_data;
 	std::vector<std::shared_ptr<treeNode>> successors;
-	treeNode(DCEL::FaceList::iterator f);
+	int depth;
+	treeNode(DCEL::FaceList::iterator f, int i);
+	treeNode(treeNode&&) = default;
 };
 
 class print_visitor : public boost::static_visitor<>

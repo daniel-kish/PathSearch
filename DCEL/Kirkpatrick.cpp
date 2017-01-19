@@ -4,6 +4,10 @@
 #include <queue>
 #include <cassert>
 #include <iomanip>
+#include <chrono>
+
+long int depth = 0;
+long int num_vertices = 0;
 
 Point const& point(triangle_vertices const& tp, int i)
 {
@@ -37,7 +41,7 @@ std::ostream& operator<< (std::ostream& os, const treeNode* tn)
 	while (!q.empty())
 	{
 		stack_element n = q.top(); q.pop();
-		os << std::string(n.lvl, '*');
+		os << n.lvl << '-' << n.node_ptr->depth << ' ';
 		boost::apply_visitor(print_visitor(os), n.node_ptr->face_data);
 		os << ' ' << n.node_ptr->successors.size() << '\n';
 		for (auto succ_iter = n.node_ptr->successors.rbegin();
@@ -67,7 +71,7 @@ void point_inside_visitor::operator()(triangle_vertices const & vs) const {
 	pos = insideTriangle(a, b, c, p);
 }
 
-treeNode::treeNode(DCEL::FaceList::iterator f) : face_data(f)
+treeNode::treeNode(DCEL::FaceList::iterator f, int _depth) : face_data(f), depth{_depth}
 {}
 
 std::vector<search_result> Kirkpatrick_localize(treeNode* root, Point const& point)
@@ -117,14 +121,18 @@ DCEL::EdgeList::iterator flip_history(DCEL& d, DCEL::EdgeList::iterator h1)
 	auto f1_new = h1->face;
 	auto f2_new = h1->twin->face;
 
-	hist1->successors.push_back(std::make_shared<treeNode>(f1_new));
-	hist1->successors.push_back(std::make_shared<treeNode>(f2_new));
+	int d_max = std::max(hist1->depth, hist2->depth);
+	hist1->successors.push_back(std::make_shared<treeNode>(f1_new, d_max + 1));
+	hist1->successors.push_back(std::make_shared<treeNode>(f2_new, d_max + 1));
 	hist2->successors.push_back(hist1->successors[0]);
 	hist2->successors.push_back(hist1->successors[1]);
 
 	f1_new->hist = hist1->successors[0].get();
 	f2_new->hist = hist1->successors[1].get();
 
+	num_vertices += 2;
+	if (d_max + 1 > depth)
+		depth = d_max + 1;
 	return h1;
 }
 
@@ -136,17 +144,21 @@ void insert_point_inside_history(DCEL& d, treeNode* node, Point const& point)
 
 	insert_point_inside(d, h, point);
 
-	node->successors.push_back(std::make_shared<treeNode>(h->face));
-	node->successors.push_back(std::make_shared<treeNode>(h->prev->twin->face));
-	node->successors.push_back(std::make_shared<treeNode>(h->next->twin->face));
+	node->successors.push_back(std::make_shared<treeNode>(h->face, node->depth + 1));
+	node->successors.push_back(std::make_shared<treeNode>(h->prev->twin->face, node->depth + 1));
+	node->successors.push_back(std::make_shared<treeNode>(h->next->twin->face, node->depth + 1));
 	h->face->hist = node->successors[0].get();
 	h->prev->twin->face->hist = node->successors[1].get();
 	h->next->twin->face->hist = node->successors[2].get();
+
+	num_vertices += 3;
+	if (node->depth + 1 > depth)
+		depth = node->depth + 1;
 }
 
 DCEL::EdgeList::iterator insert_point_on_edge_history(DCEL& d, std::vector<search_result> found, Point const& point)
 {
-	if (found.size() != 2)
+	/*if (found.size() != 2)
 	{
 		std::cout << std::setprecision(12) << '\n';
 		std::cout << point << '\n';
@@ -157,7 +169,7 @@ DCEL::EdgeList::iterator insert_point_on_edge_history(DCEL& d, std::vector<searc
 			std::cout << '{' << h->prev->target->p << ',' << h->target->p
 				<< ',' << h->next->target->p << '}' << '\n';
 		}
-	}
+	}*/
 	assert(found[0].pos != Position::in || found[0].pos != Position::out);
 	assert(found[1].pos != Position::in || found[1].pos != Position::out);
 
@@ -173,10 +185,13 @@ DCEL::EdgeList::iterator insert_point_on_edge_history(DCEL& d, std::vector<searc
 		}
 		h = h->next;
 	} while (h != f1->halfedge);
-	if (!are_neibs) {
-		std::cerr << "\tSOMETHING WENT WRONG!!!!\n";
-		std::exit(1);
-	}
+	//if (!are_neibs) {
+	//	std::cerr << "\tSOMETHING WENT WRONG!!!!\n";
+	//	std::exit(1);
+	//}
+	int cur_depth = std::max(f1->hist->depth, f2->hist->depth);
+	if (cur_depth > depth)
+		depth = cur_depth;
 
 	treeNode* f1_hist = f1->hist;
 	triangle_vertices vs1 = {h->prev->target,h->target,h->next->target};
@@ -195,16 +210,17 @@ DCEL::EdgeList::iterator insert_point_on_edge_history(DCEL& d, std::vector<searc
 	auto f4 = t->face;
 	auto f6 = t->next->twin->face;
 
-	f1_hist->successors.push_back(std::make_shared<treeNode>(f5));
+	f1_hist->successors.push_back(std::make_shared<treeNode>(f5, f1_hist->depth + 1));
 	f5->hist = f1_hist->successors[0].get();
-	f1_hist->successors.push_back(std::make_shared<treeNode>(f3));
+	f1_hist->successors.push_back(std::make_shared<treeNode>(f3, f1_hist->depth + 1));
 	f3->hist = f1_hist->successors[1].get();
 
-	f2_hist->successors.push_back(std::make_shared<treeNode>(f4));
+	f2_hist->successors.push_back(std::make_shared<treeNode>(f4, f2_hist->depth + 1));
 	f4->hist = f2_hist->successors[0].get();
-	f2_hist->successors.push_back(std::make_shared<treeNode>(f6));
+	f2_hist->successors.push_back(std::make_shared<treeNode>(f6, f2_hist->depth + 1));
 	f6->hist = f2_hist->successors[1].get();
 
+	num_vertices += 4;
 	return h->prev;
 }
 

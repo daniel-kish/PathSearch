@@ -16,6 +16,18 @@ using namespace ci;
 using namespace ci::app;
 using namespace std::literals;
 
+std::vector<Point> transform(std::vector<Point>& pts)
+{
+	std::vector<Point> newpts;
+	newpts.reserve(pts.size());
+
+	for (int i = 0; i < pts.size() - 1; ++i)
+		newpts.push_back((pts[i] + pts[i + 1])*0.5);
+	
+	newpts.push_back((pts.front() + pts.back())*0.5);
+	return newpts;
+}
+
 std::vector<Poly> readPoly(std::ifstream& input)
 {
 	std::vector<std::vector<Point>> polys;
@@ -41,14 +53,14 @@ class BasicApp : public App {
 public:
 	void setup() override
 	{
-		double d = 5'000;
+		double d = 800;
 		std::vector<Point> poly{{-d,-d},{d,-d},{0,d}};
 
 		dcel = std::make_unique<DCEL>(mk_CCW_poly(poly));
-		auto poly_face = std::next(dcel->faces.begin());
-		dcel->out_face = dcel->faces.begin();
+		auto poly_face = dcel->faces.begin();
+		dcel->out_face = std::next(dcel->faces.begin());
 
-		root = std::make_unique<treeNode>(poly_face);
+		root = std::make_unique<treeNode>(poly_face,0);
 		poly_face->hist = root.get(); // hand-shaking
 
 		hf = dcel->halfedges.begin();
@@ -152,6 +164,7 @@ private:
 	bool inside;
 
 	std::vector<search_result> found;
+	std::vector<Point> centers;
 
 	Point mousePos;
 	int height, wid;
@@ -190,85 +203,20 @@ void BasicApp::mouseWheel(MouseEvent event)
 void BasicApp::mouseDown(MouseEvent event)
 {
 	insert_point(*dcel, root.get(), mousePos);
-	//found = Kirkpatrick_localize(root.get(), mousePos);
-	hf = dcel->halfedges.begin();
 }
 void BasicApp::keyDown(KeyEvent event)
 {
 	if (event.getCode() == 'v') {
-		std::vector<Point> ins = rectHull(Rect{{400,400},{-200,-200}}, 100, 100);
-		out_poly = ins;
+		auto ins = polarHull([](double F) {
+			int N = 3;
+			double L = 100.0;
+			double val = round(N*F / M_PI);
+			double cosv = cos(2*M_PI/N * (0.5*val - round(0.5*val)) - F + M_PI/N*val);
+			return L / cosv;
+		}, {0,0}, 100);
 		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
 		for (Point const& p : ins)
-			insert_point(*dcel, root.get(), p);
-
-		ins = rectHull(Rect{{100,100},{-150,-150}}, 25, 25);
-		polys.push_back(ins);
-		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
-		for (Point const& p : ins)
-			insert_point(*dcel, root.get(), p);
-
-		ins = rectHull(Rect{{10,120},{-50,0}}, 4, 30);
-		polys.push_back(ins);
-		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
-		for (Point const& p : ins)
-			insert_point(*dcel, root.get(), p);
-
-		ins = circleHull(Circle{{80,80},80}, 100);
-		polys.push_back(ins);
-		std::shuffle(ins.begin(), ins.end(), std::mt19937{});
-		for (Point const& p : ins)
-			insert_point(*dcel, root.get(), p);
-	}
-	if (event.getCode() == 's') {
-		voronoi_edges.clear();
-		for (auto f = dcel->faces.begin(); f != dcel->faces.end(); ++f)
-		{
-			if (f == dcel->out_face) continue;
-			Point f_center = circumCenter(f->halfedge->prev->target->p,
-				f->halfedge->target->p,
-				f->halfedge->next->target->p);
-			auto i = f->halfedge;
-			do {
-				Point fi_center = circumCenter(i->twin->prev->target->p,
-					i->twin->target->p,
-					i->twin->next->target->p);
-				voronoi_edges.push_back({f_center,fi_center});
-				i = i->next;
-			} while (i != f->halfedge);
-		}
-	}
-	if (event.getCode() == 'c') {
-		voronoi_edges.clear();
-	}
-	if (event.getCode() == 'f') {
-		for (std::pair<Point, Point> & edge : voronoi_edges)
-		{
-			if (!(edge.first < edge.second))
-				std::swap(edge.first, edge.second);
-		}
-		std::sort(voronoi_edges.begin(), voronoi_edges.end(), []
-		(std::pair<Point, Point> const& e1, std::pair<Point, Point> const& e2) {
-			return std::min(e1.first, e1.second) < std::min(e2.first, e2.second);
-		});
-		auto le1 = std::unique(voronoi_edges.begin(), voronoi_edges.end());
-		voronoi_edges.erase(le1, voronoi_edges.end());
-
-
-		auto le = std::remove_if(begin(voronoi_edges), end(voronoi_edges), [this](auto const& e) {
-			for (Poly const& poly : polys) {
-				if (insidePoly(poly, e.first) || insidePoly(poly, e.second))
-					return true;
-			}
-		});
-		voronoi_edges.erase(le, voronoi_edges.end());
-		
-		le = std::partition(begin(voronoi_edges), end(voronoi_edges), [this](auto const& edge) {
-			if (!insidePoly(out_poly, edge.first) || !insidePoly(out_poly, edge.second))
-				return false;
-		});
-		voronoi_edges.erase(le, voronoi_edges.end());
-		
+			insert_point(*dcel,root.get(), p);
 	}
 }
 
@@ -289,52 +237,54 @@ void BasicApp::draw()
 		drawPoint(v.p,2.5f);
 	for (DCEL::Halfedge const& h : dcel->halfedges)
 		drawLine(h.target->p, h.twin->target->p);
+	//gl::color(Color("orange"));
+	//for (DCEL::Face const& f : dcel->faces)
+	//	drawPoint(circumCenter(f.halfedge->prev->target->p, f.halfedge->target->p, f.halfedge->next->target->p));
 
-	gl::lineWidth(1.0f);
-	for (Poly const& poly : polys)
+
+	/*for (DCEL::Face const& f : dcel->faces)
 	{
-		ci::PolyLine2 pl;
-		for (Point const& p : poly)
-			pl.push_back(toVec2(p));
-		gl::color(0.1f, 0.1f, 0.75f, 0.5f);
-		gl::drawSolid(pl);
-	}
-	gl::lineWidth(2.0f);
-	{// out_poly
-		ci::PolyLine2 pl;
-		for (Point const& p : out_poly)
-			pl.push_back(toVec2(p));
-		gl::color(0.2f, 0.2f, 0.2f, 0.2f);
-		gl::drawSolid(pl);
-	}
-
-	//if (dcel) {
-	//	for (DCEL::Halfedge const& h : dcel->halfedges)
-	//		drawHalfedge(h);
-	//	//drawSolidFace(*cur->face);
-	//	gl::color(Color("red"));
-	//	gl::lineWidth(2.0f);
-	//}
-	//drawPoint(mousePos, 2.5f);
-
-	/*for (const search_result& res : found)
-	{
-		drawSolidFace(*boost::get<DCEL::FaceList::iterator>(res.node->face_data),Color("green"));
+		Point c = facecenter(f);
+		if (insidePoly(out_poly, c))
+			drawSolidFace(f,Color("green"));
 	}*/
-	if (hf != dcel->halfedges.end()) {
+
+	//gl::color(Color("red"));
+	//for (Point const& p : centers)
+	//	drawPoint(p);
+
+	//gl::lineWidth(1.0f);
+	//for (Poly const& poly : polys)
+	//{
+	//	ci::PolyLine2 pl;
+	//	for (Point const& p : poly)
+	//		pl.push_back(toVec2(p));
+	//	gl::color(0.1f, 0.1f, 0.75f, 0.5f);
+	//	gl::drawSolid(pl);
+	//}
+	//gl::lineWidth(2.0f);
+	//{// out_poly
+	//	ci::PolyLine2 pl;
+	//	for (Point const& p : out_poly)
+	//		pl.push_back(toVec2(p));
+	//	gl::color(0.2f, 0.2f, 0.2f, 0.2f);
+	//	gl::drawSolid(pl);
+	//}
+
+	/*if (hf != dcel->halfedges.end()) {
 		if (inside)
 			drawSolidFace(*hf->face, Color("green"));
 		else {
 			gl::color(0.0f, 1.0f, 0.0f, 0.5f);
 			drawLine(hf->target->p, hf->twin->target->p);
 		}
-	}
+	}*/
 
-	gl::color(Color("darkgreen"));
+	/*gl::color(Color("darkgreen"));
 	gl::lineWidth(3.0f);
 	for (auto const& edge : voronoi_edges) {
 		drawLine(edge.first, edge.second);
-	}
+	}*/
 
 	{
 		gl::pushModelMatrix();
