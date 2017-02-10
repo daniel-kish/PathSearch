@@ -149,7 +149,7 @@ try {
 	depth = 0;
 
 	//auto ins = rectHull(Rect({500,500}, {0,0}), 10, 10);
-	auto ins = rectHull(Rect({500,500}, {-250,-250}), 12, 13);
+	auto ins = rectHull(Rect({500,500}, {-250,-250}), 200, 100);
 	std::cout << "inserting " << ins.size() << '\n';
 	std::shuffle(ins.begin(), ins.end(), std::mt19937{std::random_device{}()});
 	for (const Point& p : ins) {
@@ -159,7 +159,7 @@ try {
 	std::cout << "|v| = " << num_vertices << '\n';
 	std::cout << "d(g) = " << depth << '\n';
 
-	//return 1;
+	return 1;
 	std::set<treeNode*> vertices;
 	std::stack<treeNode*> q;
 	q.push(&tn);
