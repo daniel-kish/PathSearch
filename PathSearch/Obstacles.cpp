@@ -14,7 +14,8 @@ ObstacleGrower::ObstacleGrower(Rect r_, int nx_, int ny_, float inner_to_hull_pt
 	g = triangulatePolygon(pts);
 
 	std::vector<Point> ins;
-	ins = rectInsidesRand(r, nx * ny * inner_to_hull_pts_ratio);
+	//ins = rectInsidesRand(r, nx * ny * inner_to_hull_pts_ratio);
+	ins = rectInsides(r, nx, ny);
 	for (Point const& p : ins)
 		addNewPoint(pts, g, p);
 

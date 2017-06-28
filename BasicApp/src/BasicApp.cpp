@@ -231,7 +231,7 @@ void BasicApp::keyDown(KeyEvent event)
 	}
 	if (event.getCode() == 'r') {
 		std::ifstream is(
-			R"(C:\Users\Daniel\Documents\visual studio 2015\Projects\PathSearch\Release\file.txt)"
+			R"(C:\Users\Daniel\Documents\Visual Studio 2015\Projects\PathSearch\Release\file.txt)"
 		);
 		polys = readPoly(is);
 	}
@@ -266,7 +266,7 @@ void BasicApp::draw()
 
 	drawObstacle();
 
-	drawTrian();
+	//drawTrian();
 	//drawGrowerSets();
 	//drawGrowerTrian();
 

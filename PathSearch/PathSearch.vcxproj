@@ -150,10 +150,7 @@
     <ClCompile Include="Graph.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Obstacles.cpp" />
-    <ClCompile Include="Pathfinding.cpp" />
     <ClCompile Include="Point.cpp" />
-    <ClCompile Include="Search.cpp" />
-    <ClCompile Include="Trapezoid.cpp" />
     <ClCompile Include="Tree.cpp" />
     <ClCompile Include="triangulation.cpp" />
   </ItemGroup>
@@ -162,10 +159,7 @@
     <ClInclude Include="geometry.h" />
     <ClInclude Include="Graph.h" />
     <ClInclude Include="Obstacles.h" />
-    <ClInclude Include="Pathfinding.h" />
     <ClInclude Include="Point.h" />
-    <ClInclude Include="Search.h" />
-    <ClInclude Include="Trapezoid.h" />
     <ClInclude Include="Tree.h" />
     <ClInclude Include="triangulation.h" />
   </ItemGroup>

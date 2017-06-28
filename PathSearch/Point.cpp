@@ -60,3 +60,8 @@ double dist(Point const& p, Point const& q)
 {
 	return norm(p - q);
 }
+
+double scp(Point const& a, Point const& b)
+{
+	return a.x*b.x + a.y*b.y;
+}

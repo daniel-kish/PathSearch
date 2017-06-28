@@ -27,3 +27,5 @@ double norm(Point const& p);
 double sqNorm(Point const& p);
 
 double dist(Point const& p, Point const& q);
+
+double scp(Point const& a, Point const& b);
