@@ -1,6 +1,6 @@
 # PathSearch
 
-## About
+## About (generator branch)
 Here a collection of [path/motion planning](https://en.wikipedia.org/wiki/Motion_planning) algortihms are implemeneted. This is a course project where each student was supposed to work on a specific motion planning method. The statement of the problem ran as follows
 
 > Given a polygon with polygon "holes" find a shortest path between any two given points.
@@ -29,3 +29,17 @@ Here we can see what will happen of we use homogeneous grid instead of the scatt
 
 And here we make obstacles a little more compact, broadth-first rather than depth first, so to say.
 ![compact](/compact_grid.png)
+
+## Kirkpatrick's optimal search in planar graphs (master branch)
+In Delaunay triangulation as well as in many existing computational geometry algorithms there often arises a problem of a fast point location. When given a planar subdivision, say a triangulation, one may want to know for a certain point to which face (triangle) does it belong. Linear search involves trying all faces one by one until we find the face that includes a given point.
+In 1981 David Kirkpatrick has published a paper that is called "Optimal Search in Planar Subdivisions" which treats this problem in a very comprehensive way. When applying the technique to Delaunay triangulation it is usually recommended to follow the approach when all editing procedures performed on the triangulation (say, adding a new vertex) are "logged" to be remembered in a tree. The picture below sheds some light on this idea:
+![tree](/граф.png)
+
+Thus if we start with a single big triangle that includes all points that are going to be processed then for each point we will have to first split triangle that includes it into three and maybe swap some edges while reestablishing "delaunayhood" of the triangles. Every operation here is reflected in **history graph** where every node is triangle that has ever existed in the subdivision and its "children" are the triangles that replaced it. 
+
+This implementation made it possible to investigate efficiency of such technique in practice. The research has shown that points are to be added in random order to achieve best performance, while adding a group of closely spaced points produces high density areas which make the history graph to be more deep than broad. The following pictures show how the graph might look in all the different cases.
+
+![bad](/deep_graph.jpg)
+Here's what happens if you add vertices of a circle in their natural order.
+![good](/good_graph.jpg)
+Here the vertices of a circle are shuffled first.
