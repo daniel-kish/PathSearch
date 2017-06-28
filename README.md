@@ -43,8 +43,10 @@ Thus if we start with a single big triangle that includes all points that are go
 
 This implementation made it possible to investigate efficiency of such technique in practice. The research has shown that points are to be added in random order to achieve best performance, while adding a group of closely spaced points produces high density areas which make the history graph to be more deep than broad. The following pictures show how the graph might look in all the different cases.
 
-![bad](/deep_graph.jpg)
 Here's what happens if you add vertices of a circle in their natural order.
 
-![good](/good_graph.jpg)
+![bad](/deep_graph.jpg)
+
 Here the vertices of a circle are shuffled first.
+
+![good](/good_graph.jpg)
